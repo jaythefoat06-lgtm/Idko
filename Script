@@ -1,4 +1,4 @@
--- [[ 8 HUB: FIXED & OPTIMIZED ]] --
+-- [[ 8 HUB: MOBILE + PC STEALTH ]] --
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local RS = game:GetService("RunService")
@@ -12,26 +12,22 @@ ScreenGui.Name = "8Hub_Official"
 
 -- Main Menu
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 320, 0, 480)
-Main.Position = UDim2.new(0.5, -160, 0.5, -240)
-Main.BackgroundColor3 = Color3.fromRGB(35, 5, 35)
+Main.Size = UDim2.new(0, 300, 0, 460) -- Slightly narrower for mobile screens
+Main.Position = UDim2.new(0.5, -150, 0.5, -230)
+Main.BackgroundColor3 = Color3.fromRGB(30, 5, 30)
 Main.Active = true
 Main.Draggable = true
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
 local Stroke = Instance.new("UIStroke", Main)
-Stroke.Color = Color3.fromRGB(255, 50, 180)
 Stroke.Thickness = 2
 
--- Title
+-- Rainbow Title Logic
 local Title = Instance.new("TextLabel", Main)
 Title.Text = "8 Hub"
-Title.Size = UDim2.new(1, 0, 0, 60)
+Title.Size = UDim2.new(1, 0, 0, 50)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 30
-
--- Rainbow Cycle
+Title.TextSize = 28
 task.spawn(function()
     while task.wait() do
         for i = 0, 1, 0.01 do
@@ -46,13 +42,13 @@ _G.Settings = {
     SpeedActive = false, WalkSpeed = 50, 
     SpinActive = false, SpinSpeed = 25, 
     InfJump = false, AntiKB = false, 
-    AutoGrab = false, Freeze = false, ESP = false 
+    AutoGrab = false, Freeze = false 
 }
 
--- [[ FIXED SLIDER WITH CIRCLE ]] --
+-- [[ MOBILE COMPATIBLE SLIDER ]] --
 local function AddSlider(name, y, min, max, default, var)
     local F = Instance.new("Frame", Main)
-    F.Size = UDim2.new(0.9, 0, 0, 40)
+    F.Size = UDim2.new(0.9, 0, 0, 45)
     F.Position = UDim2.new(0.05, 0, 0, y)
     F.BackgroundTransparency = 1
     
@@ -64,53 +60,61 @@ local function AddSlider(name, y, min, max, default, var)
     L.Font = Enum.Font.Gotham
     L.TextSize = 12
 
-    local BG = Instance.new("TextButton", F) -- Button for better click detection
-    BG.Size = UDim2.new(1, 0, 0, 4)
-    BG.Position = UDim2.new(0, 0, 1, -10)
-    BG.BackgroundColor3 = Color3.fromRGB(60, 20, 60)
-    BG.Text = ""
-    Instance.new("UICorner", BG)
+    local SliderBack = Instance.new("Frame", F)
+    SliderBack.Size = UDim2.new(1, 0, 0, 6)
+    SliderBack.Position = UDim2.new(0, 0, 1, -12)
+    SliderBack.BackgroundColor3 = Color3.fromRGB(50, 20, 50)
+    Instance.new("UICorner", SliderBack)
 
-    local Fill = Instance.new("Frame", BG)
+    local Fill = Instance.new("Frame", SliderBack)
     Fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
     Fill.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
     Instance.new("UICorner", Fill)
 
     local Knob = Instance.new("Frame", Fill)
-    Knob.Size = UDim2.new(0, 12, 0, 12)
-    Knob.Position = UDim2.new(1, -6, 0.5, -6)
+    Knob.Size = UDim2.new(0, 16, 0, 16) -- Larger knob for touch
+    Knob.Position = UDim2.new(1, -8, 0.5, -8)
     Knob.BackgroundColor3 = Color3.new(1, 1, 1)
     Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
-    Instance.new("UIStroke", Knob).Color = Color3.fromRGB(255, 20, 147)
 
-    local function Update()
-        local MousePos = UIS:GetMouseLocation().X
-        local BtnPos = BG.AbsolutePosition.X
-        local BtnSize = BG.AbsoluteSize.X
-        local Percentage = math.clamp((MousePos - BtnPos) / BtnSize, 0, 1)
+    local isDragging = false
+
+    local function Move(input)
+        local inputPos = input.Position.X
+        local sliderPos = SliderBack.AbsolutePosition.X
+        local sliderWidth = SliderBack.AbsoluteSize.X
+        local percentage = math.clamp((inputPos - sliderPos) / sliderWidth, 0, 1)
         
-        Fill.Size = UDim2.new(Percentage, 0, 1, 0)
-        local Value = math.floor(min + (Percentage * (max - min)))
-        L.Text = name .. ": " .. Value
-        _G.Settings[var] = Value
+        Fill.Size = UDim2.new(percentage, 0, 1, 0)
+        local value = math.floor(min + (percentage * (max - min)))
+        L.Text = name .. ": " .. value
+        _G.Settings[var] = value
     end
 
-    local Connection;
-    BG.MouseButton1Down:Connect(function()
-        Update()
-        Connection = RS.RenderStepped:Connect(Update)
+    -- Mouse + Touch Support
+    SliderBack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+        end
     end)
+
+    UIS.InputChanged:Connect(function(input)
+        if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            Move(input)
+        end
+    end)
+
     UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and Connection then
-            Connection:Disconnect()
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = false
         end
     end)
 end
 
--- [[ TOGGLE ]] --
+-- [[ TOGGLES ]] --
 local function AddToggle(name, y, var)
     local F = Instance.new("Frame", Main)
-    F.Size = UDim2.new(0.9, 0, 0, 30)
+    F.Size = UDim2.new(0.9, 0, 0, 32)
     F.Position = UDim2.new(0.05, 0, 0, y)
     F.BackgroundTransparency = 1
     
@@ -124,63 +128,87 @@ local function AddToggle(name, y, var)
     L.TextSize = 14
 
     local B = Instance.new("TextButton", F)
-    B.Size = UDim2.new(0, 38, 0, 18)
-    B.Position = UDim2.new(1, -40, 0.5, -9)
+    B.Size = UDim2.new(0, 42, 0, 20)
+    B.Position = UDim2.new(1, -45, 0.5, -10)
     B.BackgroundColor3 = Color3.fromRGB(60, 20, 60)
     B.Text = ""
     Instance.new("UICorner", B).CornerRadius = UDim.new(1, 0)
     
     local Dot = Instance.new("Frame", B)
-    Dot.Size = UDim2.new(0, 14, 0, 14)
-    Dot.Position = UDim2.new(0, 2, 0.5, -7)
+    Dot.Size = UDim2.new(0, 16, 0, 16)
+    Dot.Position = UDim2.new(0, 2, 0.5, -8)
     Dot.BackgroundColor3 = Color3.new(1, 1, 1)
     Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
 
     B.MouseButton1Click:Connect(function()
         _G.Settings[var] = not _G.Settings[var]
         B.BackgroundColor3 = _G.Settings[var] and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(60, 20, 60)
-        Dot:TweenPosition(_G.Settings[var] and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7), "Out", "Quad", 0.2)
+        Dot:TweenPosition(_G.Settings[var] and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8), "Out", "Quad", 0.15)
     end)
 end
 
--- UI Layout
+-- Layout
 AddToggle("Speed Boost", 60, "SpeedActive")
-AddSlider("Value", 90, 20, 100, 50, "WalkSpeed")
-AddToggle("Spin Bot", 135, "SpinActive")
-AddSlider("Spin Speed", 165, 0, 100, 25, "SpinSpeed")
-AddToggle("Infinite Jump", 210, "InfJump")
-AddToggle("Anti-Knockback", 245, "AntiKB")
-AddToggle("Auto-Grab (Nearby)", 280, "AutoGrab")
-AddToggle("Player ESP", 315, "ESP")
-AddToggle("Freeze Anims", 350, "Freeze")
+AddSlider("Walk Value", 95, 20, 100, 50, "WalkSpeed")
+AddToggle("Spin Bot", 145, "SpinActive")
+AddSlider("Spin Power", 180, 0, 100, 25, "SpinSpeed")
+AddToggle("Infinite Jump", 230, "InfJump")
+AddToggle("Anti-Knockback", 265, "AntiKB")
+AddToggle("Auto-Grab (Nearby)", 300, "AutoGrab")
+AddToggle("Freeze Idle", 335, "Freeze")
 
--- [[ FIXED LOGIC ]] --
+-- Floating Toggle Button
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 70, 0, 30)
+OpenBtn.Position = UDim2.new(0, 10, 0, 10)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 5, 25)
+OpenBtn.Text = "8 Hub"
+OpenBtn.TextColor3 = Color3.fromRGB(255, 20, 147)
+OpenBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", OpenBtn)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+-- [[ GAME LOGIC ]] --
 RS.Heartbeat:Connect(function()
     local Char = LP.Character
     local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
     local Root = Char and Char:FindFirstChild("HumanoidRootPart")
 
     if Hum and Root then
-        -- FIXED ANTI-KB (Zeros Velocity without freezing player movement)
-        if _G.Settings.AntiKB then
-            local oldVel = Root.Velocity
-            Root.Velocity = Vector3.new(0, oldVel.Y, 0)
-            Root.RotVelocity = Vector3.new(0, 0, 0)
-        end
-
         -- SPEED
         if _G.Settings.SpeedActive then Hum.WalkSpeed = _G.Settings.WalkSpeed else Hum.WalkSpeed = 16 end
         
-        -- UNDETECTED SPIN (Uses CFrame Lerp for smoothness)
+        -- PHYSICAL SPIN (Bypasses many resets)
         if _G.Settings.SpinActive then
-            Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(_G.Settings.SpinSpeed), 0)
+            if not Root:FindFirstChild("8Hub_Spin") then
+                local AV = Instance.new("AngularVelocity", Root)
+                AV.Name = "8Hub_Spin"
+                AV.MaxTorque = math.huge
+                AV.Attachment0 = Root:FindFirstChildOfClass("Attachment") or Instance.new("Attachment", Root)
+            end
+            Root:FindFirstChild("8Hub_Spin").AngularVelocity = Vector3.new(0, _G.Settings.SpinSpeed, 0)
+        elseif Root:FindFirstChild("8Hub_Spin") then
+            Root:FindFirstChild("8Hub_Spin"):Destroy()
+        end
+
+        -- ANIMATION FREEZE
+        if _G.Settings.Freeze then
+            for _, track in pairs(Hum:GetPlayingAnimationTracks()) do track:AdjustSpeed(0) end
+        else
+            for _, track in pairs(Hum:GetPlayingAnimationTracks()) do track:AdjustSpeed(1) end
+        end
+
+        -- ANTI-KNOCKBACK
+        if _G.Settings.AntiKB then
+            local v = Root.AssemblyLinearVelocity
+            Root.AssemblyLinearVelocity = Vector3.new(0, v.Y, 0)
         end
     end
 
-    -- AUTO-GRAB (Nearby focus)
+    -- NEARBY GRABBER
     if _G.Settings.AutoGrab and Root then
         for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("TouchTransmitter") and (Root.Position - v.Parent.Position).Magnitude <= 15 then
+            if v:IsA("TouchTransmitter") and (Root.Position - v.Parent.Position).Magnitude <= 12 then
                 firetouchinterest(Root, v.Parent, 0)
                 firetouchinterest(Root, v.Parent, 1)
             end
@@ -188,22 +216,10 @@ RS.Heartbeat:Connect(function()
     end
 end)
 
--- UNDETECTED INF JUMP
+-- STEALTH JUMP
 UIS.JumpRequest:Connect(function()
     if _G.Settings.InfJump and LP.Character then
         local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
-
--- Open/Close Button
-local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 80, 0, 30)
-OpenBtn.Position = UDim2.new(0, 10, 0, 10)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 5, 25)
-OpenBtn.Text = "8 Hub"
-OpenBtn.TextColor3 = Color3.fromRGB(255, 20, 147)
-Instance.new("UICorner", OpenBtn)
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-
-print("8 Hub: Fixed Sliders, Anti-KB & ESP Loaded.")
