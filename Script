@@ -1,4 +1,4 @@
--- [[ 8 HUB: STEALTH + TYPING BOXES ]] --
+-- [[ 8 HUB: PRO EDITION ]] --
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local RS = game:GetService("RunService")
@@ -10,7 +10,7 @@ if CoreGui:FindFirstChild("8Hub_Official") then CoreGui:FindFirstChild("8Hub_Off
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "8Hub_Official"
 
--- Main Menu
+-- [[ UI CONTEXT & DESIGN ]] --
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size = UDim2.new(0, 280, 0, 440)
 Main.Position = UDim2.new(0.5, -140, 0.5, -220)
@@ -45,93 +45,62 @@ _G.Settings = {
     AutoGrab = false, Freeze = false 
 }
 
--- [[ TYPING BOX FUNCTION ]] --
+-- Typing Box & Toggle Helpers (Condensed)
 local function AddInputBox(name, y, default, var)
     local F = Instance.new("Frame", Main)
     F.Size = UDim2.new(0.9, 0, 0, 35)
     F.Position = UDim2.new(0.05, 0, 0, y)
     F.BackgroundTransparency = 1
-    
     local L = Instance.new("TextLabel", F)
-    L.Text = name
-    L.Size = UDim2.new(0.6, 0, 1, 0)
-    L.TextColor3 = Color3.new(1,1,1)
-    L.BackgroundTransparency = 1
-    L.Font = Enum.Font.Gotham
-    L.TextSize = 14
-    L.TextXAlignment = Enum.TextXAlignment.Left
-
+    L.Text = name; L.Size = UDim2.new(0.6, 0, 1, 0); L.TextColor3 = Color3.new(1,1,1); L.BackgroundTransparency = 1; L.Font = Enum.Font.Gotham; L.TextSize = 14; L.TextXAlignment = Enum.TextXAlignment.Left
     local Box = Instance.new("TextBox", F)
-    Box.Size = UDim2.new(0, 60, 0, 25)
-    Box.Position = UDim2.new(1, -65, 0.5, -12)
-    Box.BackgroundColor3 = Color3.fromRGB(45, 10, 45)
-    Box.Text = tostring(default)
-    Box.TextColor3 = Color3.fromRGB(255, 20, 147)
-    Box.Font = Enum.Font.GothamBold
-    Box.TextSize = 14
-    Instance.new("UICorner", Box)
-    
-    Box.FocusLost:Connect(function()
-        local val = tonumber(Box.Text)
-        if val then _G.Settings[var] = val else Box.Text = tostring(_G.Settings[var]) end
-    end)
+    Box.Size = UDim2.new(0, 60, 0, 25); Box.Position = UDim2.new(1, -65, 0.5, -12); Box.BackgroundColor3 = Color3.fromRGB(45, 10, 45); Box.Text = tostring(default); Box.TextColor3 = Color3.fromRGB(255, 20, 147); Box.Font = Enum.Font.GothamBold; Box.TextSize = 14; Instance.new("UICorner", Box)
+    Box.FocusLost:Connect(function() local val = tonumber(Box.Text); if val then _G.Settings[var] = val end end)
 end
 
--- [[ TOGGLE FUNCTION ]] --
 local function AddToggle(name, y, var)
     local F = Instance.new("Frame", Main)
-    F.Size = UDim2.new(0.9, 0, 0, 30)
-    F.Position = UDim2.new(0.05, 0, 0, y)
-    F.BackgroundTransparency = 1
-    
-    local L = Instance.new("TextLabel", F)
-    L.Text = name
-    L.Size = UDim2.new(0.7, 0, 1, 0)
-    L.TextColor3 = Color3.fromRGB(255, 180, 230)
-    L.BackgroundTransparency = 1
-    L.TextXAlignment = Enum.TextXAlignment.Left
-    L.Font = Enum.Font.Gotham
-    L.TextSize = 13
-
-    local B = Instance.new("TextButton", F)
-    B.Size = UDim2.new(0, 35, 0, 18)
-    B.Position = UDim2.new(1, -40, 0.5, -9)
-    B.BackgroundColor3 = Color3.fromRGB(60, 20, 60)
-    B.Text = ""
-    Instance.new("UICorner", B).CornerRadius = UDim.new(1, 0)
-    
-    local Dot = Instance.new("Frame", B)
-    Dot.Size = UDim2.new(0, 14, 0, 14)
-    Dot.Position = UDim2.new(0, 2, 0.5, -7)
-    Dot.BackgroundColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
-
-    B.MouseButton1Click:Connect(function()
-        _G.Settings[var] = not _G.Settings[var]
-        B.BackgroundColor3 = _G.Settings[var] and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(60, 20, 60)
-        Dot:TweenPosition(_G.Settings[var] and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7), "Out", "Quad", 0.1)
-    end)
+    F.Size = UDim2.new(0.9, 0, 0, 30); F.Position = UDim2.new(0.05, 0, 0, y); F.BackgroundTransparency = 1
+    local L = Instance.new("TextLabel", F); L.Text = name; L.Size = UDim2.new(0.7, 0, 1, 0); L.TextColor3 = Color3.fromRGB(255, 180, 230); L.BackgroundTransparency = 1; L.TextXAlignment = Enum.TextXAlignment.Left; L.Font = Enum.Font.Gotham; L.TextSize = 13
+    local B = Instance.new("TextButton", F); B.Size = UDim2.new(0, 35, 0, 18); B.Position = UDim2.new(1, -40, 0.5, -9); B.BackgroundColor3 = Color3.fromRGB(60, 20, 60); B.Text = ""; Instance.new("UICorner", B).CornerRadius = UDim.new(1, 0)
+    local Dot = Instance.new("Frame", B); Dot.Size = UDim2.new(0, 14, 0, 14); Dot.Position = UDim2.new(0, 2, 0.5, -7); Dot.BackgroundColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
+    B.MouseButton1Click:Connect(function() _G.Settings[var] = not _G.Settings[var]; B.BackgroundColor3 = _G.Settings[var] and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(60, 20, 60); Dot:TweenPosition(_G.Settings[var] and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7), "Out", "Quad", 0.1) end)
 end
 
--- UI Layout
 AddToggle("Speed Boost", 60, "SpeedActive")
 AddInputBox("Speed Value", 95, 50, "WalkSpeed")
 AddToggle("Spin Bot", 135, "SpinActive")
 AddInputBox("Spin Power", 170, 25, "SpinSpeed")
 AddToggle("Infinite Jump", 210, "InfJump")
 AddToggle("Anti-Knockback", 245, "AntiKB")
-AddToggle("Auto-Grab (Nearby)", 280, "AutoGrab")
+AddToggle("Auto-Grab (Visual)", 280, "AutoGrab")
 AddToggle("Freeze Idle", 315, "Freeze")
 
--- Open/Close
-local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 70, 0, 30)
-OpenBtn.Position = UDim2.new(0, 10, 0, 10)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 5, 25)
-OpenBtn.Text = "8 Hub"
-OpenBtn.TextColor3 = Color3.fromRGB(255, 20, 147)
-Instance.new("UICorner", OpenBtn)
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+-- [[ VISUAL AUTO-GRAB LOGIC ]] --
+-- Replicates the "Collect" icons from the video
+local function CreateCollectUI(part)
+    local Billboard = Instance.new("BillboardGui", part)
+    Billboard.Size = UDim2.new(0, 50, 0, 50)
+    Billboard.AlwaysOnTop = true
+    Billboard.ExtentsOffset = Vector3.new(0, 3, 0)
+    
+    local Icon = Instance.new("ImageLabel", Billboard)
+    Icon.Size = UDim2.new(1, 0, 1, 0)
+    Icon.BackgroundTransparency = 1
+    Icon.Image = "rbxassetid://6031280792" -- Hand icon similar to video
+    Icon.ImageColor3 = Color3.new(1, 1, 1)
+    
+    local Text = Instance.new("TextLabel", Billboard)
+    Text.Size = UDim2.new(1, 0, 0, 20)
+    Text.Position = UDim2.new(0, 0, 1, 0)
+    Text.BackgroundTransparency = 1
+    Text.Text = "Collect"
+    Text.TextColor3 = Color3.new(1,1,1)
+    Text.Font = Enum.Font.GothamBold
+    Text.TextSize = 12
+    
+    return Billboard
+end
 
 -- [[ STEALTH CORE LOGIC ]] --
 RS.Heartbeat:Connect(function()
@@ -140,51 +109,52 @@ RS.Heartbeat:Connect(function()
     local Root = Char and Char:FindFirstChild("HumanoidRootPart")
 
     if Hum and Root then
-        -- SPEED
-        if _G.Settings.SpeedActive then Hum.WalkSpeed = _G.Settings.WalkSpeed else Hum.WalkSpeed = 16 end
+        -- FIXED SPEED
+        Hum.WalkSpeed = _G.Settings.SpeedActive and _G.Settings.WalkSpeed or 16
         
-        -- SPIN (Smooth CFrame Lerp)
+        -- PHYSICAL SPIN (Prevents Resetting)
         if _G.Settings.SpinActive then
-            Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(_G.Settings.SpinSpeed), 0)
+            local BodyAng = Root:FindFirstChild("8Hub_SpinForce") or Instance.new("BodyAngularVelocity", Root)
+            BodyAng.Name = "8Hub_SpinForce"
+            BodyAng.MaxTorque = Vector3.new(0, math.huge, 0)
+            BodyAng.AngularVelocity = Vector3.new(0, _G.Settings.SpinSpeed, 0)
+        elseif Root:FindFirstChild("8Hub_SpinForce") then
+            Root:FindFirstChild("8Hub_SpinForce"):Destroy()
         end
 
-        -- FREEZE IDLE (Stops animations locally only)
-        if _G.Settings.Freeze then
-            for _, track in pairs(Hum:GetPlayingAnimationTracks()) do
-                track:AdjustSpeed(0)
-            end
-        else
-            for _, track in pairs(Hum:GetPlayingAnimationTracks()) do
-                track:AdjustSpeed(1)
-            end
+        -- STEALTH ANTI-KB
+        if _G.Settings.AntiKB and Root.AssemblyLinearVelocity.Magnitude > Hum.WalkSpeed + 5 then
+            Root.AssemblyLinearVelocity = Vector3.new(0, Root.AssemblyLinearVelocity.Y, 0)
         end
 
-        -- ANTI-KB (Optimized to not slow you down)
-        if _G.Settings.AntiKB then
-            local vel = Root.AssemblyLinearVelocity
-            if vel.Magnitude > Hum.WalkSpeed + 5 then -- Only triggers if hit by something fast
-                Root.AssemblyLinearVelocity = Vector3.new(0, vel.Y, 0)
-            end
-        end
-    end
-
-    -- AUTO-GRAB (Touch interest trigger)
-    if _G.Settings.AutoGrab and Root then
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("TouchTransmitter") and (Root.Position - v.Parent.Position).Magnitude <= 10 then
-                firetouchinterest(Root, v.Parent, 0)
-                firetouchinterest(Root, v.Parent, 1)
+        -- VISUAL AUTO-GRAB (Nearby Only)
+        if _G.Settings.AutoGrab then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    local parent = v.Parent
+                    local dist = (Root.Position - parent.Position).Magnitude
+                    if dist <= 15 then
+                        if not parent:FindFirstChildOfClass("BillboardGui") then
+                            CreateCollectUI(parent)
+                        end
+                        firetouchinterest(Root, parent, 0)
+                        firetouchinterest(Root, parent, 1)
+                    elseif parent:FindFirstChildOfClass("BillboardGui") then
+                        parent:FindFirstChildOfClass("BillboardGui"):Destroy()
+                    end
+                end
             end
         end
     end
 end)
 
--- STEALTH JUMP (Applies a soft impulse instead of a state change)
+-- STEALTH JUMP (Soft Force)
 UIS.JumpRequest:Connect(function()
     if _G.Settings.InfJump and LP.Character then
         local Root = LP.Character:FindFirstChild("HumanoidRootPart")
-        if Root then
-            Root.AssemblyLinearVelocity = Vector3.new(Root.AssemblyLinearVelocity.X, 50, Root.AssemblyLinearVelocity.Z)
-        end
+        if Root then Root.ApplyImpulse(Root, Vector3.new(0, 30, 0)) end
     end
 end)
+
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 70, 0, 30); OpenBtn.Position = UDim2.new(0, 10, 0, 10); OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 5, 25); OpenBtn.Text = "8 Hub"; OpenBtn.TextColor3 = Color3.fromRGB(255, 20, 147); Instance.new("UICorner", OpenBtn); OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
