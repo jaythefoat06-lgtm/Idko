@@ -1,167 +1,93 @@
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
--- [[ STATE ]]
-local state = {
-    speedEnabled = false, speedValue = 16,
-    spinEnabled = false, spinSpeed = 10,
-    autoSteal = false,
-    espEnabled = false
+-- [[ CONFIGURATION ]] --
+local Settings = {
+    WalkSpeed = 50,
+    GrabRange = 30,
+    SpinSpeed = 25,
+    ESP_Enabled = true,
+    InfJump = true,
+    AntiKnockback = true,
+    AntiRagdoll = true,
+    FreezeIdle = true -- SET TO TRUE TO FREEZE ANIMATIONS
 }
 
--- [[ UI SETUP ]]
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 350, 0, 480)
-MainFrame.Position = UDim2.new(0.5, -175, 0.4, -240)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-MainFrame.Active, MainFrame.Draggable = true, true
-Instance.new("UICorner", MainFrame)
+-- [[ SERVICES ]] --
+local Players = game:GetService("Players")
+local RS = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local LocalPlayer = Players.LocalPlayer
 
-local GalaxyBG = Instance.new("ImageLabel", MainFrame)
-GalaxyBG.Size = UDim2.new(1, 0, 1, 0)
-GalaxyBG.Image = "rbxassetid://7017781914"
-GalaxyBG.ImageTransparency = 0.6
-GalaxyBG.BackgroundTransparency = 1
-GalaxyBG.ZIndex = 0
-Instance.new("UICorner", GalaxyBG)
-
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.Text = "J HUB"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 25
-Title.ZIndex = 2
-
--- [[ SLIDER CREATOR ]]
-local function CreateSlider(name, pos, min, max, varName)
-    local Label = Instance.new("TextLabel", MainFrame)
-    Label.Size = UDim2.new(0.8, 0, 0, 20)
-    Label.Position = pos
-    Label.Text = name .. ": " .. state[varName]
-    Label.TextColor3 = Color3.new(1,1,1)
-    Label.BackgroundTransparency = 1
-    Label.ZIndex = 2
-
-    local SliderBar = Instance.new("Frame", MainFrame)
-    SliderBar.Size = UDim2.new(0.8, 0, 0, 6)
-    SliderBar.Position = pos + UDim2.new(0, 0, 0, 25)
-    SliderBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    SliderBar.ZIndex = 2
-    
-    local Fill = Instance.new("Frame", SliderBar)
-    Fill.Size = UDim2.new((state[varName]-min)/(max-min), 0, 1, 0)
-    Fill.BackgroundColor3 = Color3.fromRGB(100, 0, 255)
-
-    local Button = Instance.new("TextButton", SliderBar)
-    Button.Size = UDim2.new(1, 0, 1, 0)
-    Button.BackgroundTransparency = 1
-    Button.Text = ""
-
-    Button.MouseButton1Down:Connect(function()
-        local moveConnection
-        moveConnection = RunService.RenderStepped:Connect(function()
-            local mousePos = UserInputService:GetMouseLocation().X
-            local relativePos = math.clamp((mousePos - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
-            local value = math.floor(min + (relativePos * (max - min)))
-            
-            state[varName] = value
-            Label.Text = name .. ": " .. value
-            Fill.Size = UDim2.new(relativePos, 0, 1, 0)
-        end)
-        
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                if moveConnection then moveConnection:Disconnect() end
-            end
-        end)
-    end)
+-- 1. GRAPHICS ENHANCER
+local function EnhanceGraphics()
+    Lighting.Brightness = 2
+    Lighting.GlobalShadows = true
+    Lighting.ClockTime = 14
+    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
 end
+EnhanceGraphics()
 
--- [[ TOGGLE CREATOR ]]
-local function CreateToggle(name, pos, varName)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0.8, 0, 0, 35)
-    btn.Position = pos
-    btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.ZIndex = 2
-    Instance.new("UICorner", btn)
-
-    btn.MouseButton1Click:Connect(function()
-        state[varName] = not state[varName]
-        btn.Text = name .. (state[varName] and ": ON" or ": OFF")
-        btn.BackgroundColor3 = state[varName] and Color3.fromRGB(100, 0, 255) or Color3.fromRGB(30, 30, 30)
-    end)
-end
-
--- UI Components
-CreateToggle("Speed Boost", UDim2.new(0.1, 0, 0.15, 0), "speedEnabled")
-CreateSlider("Speed", UDim2.new(0.1, 0, 0.23, 0), 1, 90, "speedValue")
-
-CreateToggle("Spin Bot", UDim2.new(0.1, 0, 0.35, 0), "spinEnabled")
-CreateSlider("Spin Speed", UDim2.new(0.1, 0, 0.43, 0), 1, 90, "spinSpeed")
-
-CreateToggle("Auto Steal (3s Delay)", UDim2.new(0.1, 0, 0.55, 0), "autoSteal")
-CreateToggle("Xray ESP", UDim2.new(0.1, 0, 0.65, 0), "espEnabled")
-
--- [[ THE ENGINES ]]
-
--- SPEED ENGINE: Pivot-Nudge (Hardest to detect)
-RunService.Heartbeat:Connect(function(dt)
-    if state.speedEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local hum = player.Character.Humanoid
-        local root = player.Character.HumanoidRootPart
-        if hum.MoveDirection.Magnitude > 0 then
-            -- We push the character's coordinate frame slightly forward based on your slider
-            root.CFrame = root.CFrame + (hum.MoveDirection * (state.speedValue / 20))
-        end
-    end
-end)
-
--- SPIN ENGINE
-RunService.RenderStepped:Connect(function()
-    if state.spinEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(state.spinSpeed), 0)
-    end
-end)
-
--- AUTO STEAL ENGINE
-task.spawn(function()
-    while task.wait(0.5) do
-        if state.autoSteal and player.Character then
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v.Name:lower():find("brain") or v:IsA("ClickDetector") or v:IsA("ProximityPrompt") then
-                    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp and (v:GetPivot().Position - hrp.Position).Magnitude < 30 then
-                        task.wait(3)
-                        if v:IsA("ClickDetector") then fireclickdetector(v)
-                        elseif v:IsA("ProximityPrompt") then fireproximityprompt(v) end
-                    end
-                end
+-- 2. IDLE FREEZER (Stops all animations)
+RS.Stepped:Connect(function()
+    if Settings.FreezeIdle and LocalPlayer.Character then
+        local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if Hum then
+            for _, anim in pairs(Hum:GetPlayingAnimationTracks()) do
+                anim:Stop()
             end
         end
     end
 end)
 
--- ESP ENGINE
-RunService.Heartbeat:Connect(function()
-    if state.espEnabled then
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v.Name:lower():find("brain") and not v:FindFirstChild("Highlight") then
-                local h = Instance.new("Highlight", v)
-                h.FillColor = Color3.fromRGB(150, 0, 255)
+-- 3. ANTI-KB & ANTI-RAGDOLL
+RS.Heartbeat:Connect(function()
+    local Char = LocalPlayer.Character
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+
+    if Root and Hum then
+        if Settings.AntiKnockback then
+            Root.Velocity = Vector3.new(0, Root.Velocity.Y, 0)
+            Root.RotVelocity = Vector3.new(0, 0, 0)
+        end
+        if Settings.AntiRagdoll then
+            Hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+            Hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            if Hum:GetState() == Enum.HumanoidStateType.Ragdoll or Hum:GetState() == Enum.HumanoidStateType.FallingDown then
+                Hum:ChangeState(Enum.HumanoidStateType.GettingUp)
             end
         end
     end
 end)
 
--- MENU TOGGLE
-UserInputService.InputBegan:Connect(function(io, gpe)
-    if not gpe and io.KeyCode == Enum.KeyCode.RightControl then MainFrame.Visible = not MainFrame.Visible end
+-- 4. SPIN BOT & MOVEMENT
+RS.RenderStepped:Connect(function()
+    local Char = LocalPlayer.Character
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    local Hum = Char and Char:FindFirstChild("Humanoid")
+
+    if Root and Hum then
+        -- Spin Logic
+        Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(Settings.SpinSpeed), 0)
+        -- Speed Logic
+        Hum.WalkSpeed = Settings.WalkSpeed
+    end
+
+    -- Auto-Grab
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("TouchTransmitter") and Root then
+            if (Root.Position - v.Parent.Position).Magnitude <= Settings.GrabRange then
+                firetouchinterest(Root, v.Parent, 0)
+                firetouchinterest(Root, v.Parent, 1)
+            end
+        end
+    end
 end)
+
+-- 5. INFINITE JUMP
+UIS.JumpRequest:Connect(function()
+    if Settings.InfJump and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+print("Master Script Loaded: Idle Freeze, Anti-KB, Spin, and ESP ACTIVE.")
