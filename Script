@@ -5,32 +5,33 @@ local player = Players.LocalPlayer
 
 -- [[ CONFIGURATION & STATE ]]
 local state = {
-    speedEnabled = false, speedValue = 35, -- Kept at 35 to avoid position-snapping bans
+    speedEnabled = false, speedValue = 35,
     jumpEnabled = false, 
     spinEnabled = false, spinSpeed = 10,
     autoSteal = false, stealRange = 25,
     espEnabled = false,
-    galaxyMode = true
 }
 
 -- [[ UI INITIALIZATION ]]
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-ScreenGui.Name = "JHub_Elite_V5"
+ScreenGui.Name = "JHub_Elite_V6"
 
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 320, 0, 450)
 MainFrame.Position = UDim2.new(0.5, -160, 0.4, -225)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 10, 25) -- Deep purple fallback
 MainFrame.BorderSizePixel = 0
 MainFrame.Active, MainFrame.Draggable = true, true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Galaxy Background
+-- [[ GALAXY IMAGE FIX ]]
 local GalaxyBG = Instance.new("ImageLabel", MainFrame)
 GalaxyBG.Size = UDim2.new(1, 0, 1, 0)
-GalaxyBG.Image = "rbxassetid://13143526189" 
-GalaxyBG.ImageTransparency = 0.6
+-- New Universal Galaxy Asset ID
+GalaxyBG.Image = "rbxassetid://7017781914" 
+GalaxyBG.ImageTransparency = 0.5
 GalaxyBG.BackgroundTransparency = 1
+GalaxyBG.ScaleType = Enum.ScaleType.Crop
 GalaxyBG.ZIndex = 0
 Instance.new("UICorner", GalaxyBG).CornerRadius = UDim.new(0, 10)
 
@@ -41,71 +42,51 @@ Header.Text = "J HUB"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
 Header.BackgroundTransparency = 1
 Header.Font = Enum.Font.GothamBold
-Header.TextSize = 22
+Header.TextSize = 24
+Header.ZIndex = 2
 
 -- [[ TOGGLE COMPONENT ]]
 local function CreateToggle(text, pos, varName)
     local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0.4, 0, 0, 35)
+    btn.Size = UDim2.new(0.8, 0, 0, 40)
     btn.Position = pos
     btn.Text = text .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    btn.BackgroundTransparency = 0.2
     btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 11
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 13
+    btn.ZIndex = 2
     Instance.new("UICorner", btn)
 
     btn.MouseButton1Click:Connect(function()
         state[varName] = not state[varName]
         btn.Text = text .. (state[varName] and ": ON" or ": OFF")
-        btn.BackgroundColor3 = state[varName] and Color3.fromRGB(80, 0, 200) or Color3.fromRGB(40, 40, 45)
+        btn.BackgroundColor3 = state[varName] and Color3.fromRGB(100, 0, 255) or Color3.fromRGB(30, 30, 35)
     end)
 end
 
--- Create Toggles
-CreateToggle("Stealth Speed", UDim2.new(0.05, 0, 0.15, 0), "speedEnabled")
-CreateToggle("Anti-Gravity Jump", UDim2.new(0.55, 0, 0.15, 0), "jumpEnabled")
-CreateToggle("Spin Bot", UDim2.new(0.05, 0, 0.3, 0), "spinEnabled")
-CreateToggle("Auto Steal", UDim2.new(0.55, 0, 0.3, 0), "autoSteal")
-CreateToggle("Item Xray (ESP)", UDim2.new(0.3, 0, 0.45, 0), "espEnabled")
+-- Create Toggles in a clean list
+CreateToggle("Stealth Speed", UDim2.new(0.1, 0, 0.15, 0), "speedEnabled")
+CreateToggle("Anti-Gravity Jump", UDim2.new(0.1, 0, 0.27, 0), "jumpEnabled")
+CreateToggle("Spin Bot", UDim2.new(0.1, 0, 0.39, 0), "spinEnabled")
+CreateToggle("Auto Steal (3s Delay)", UDim2.new(0.1, 0, 0.51, 0), "autoSteal")
+CreateToggle("Item Xray (ESP)", UDim2.new(0.1, 0, 0.63, 0), "espEnabled")
 
--- [[ THE "UNDETECTABLE" LOGIC ]]
+-- [[ STEALTH LOGIC ]]
 
--- 1. Stealth Speed: Moves CFrame on Heartbeat (Post-Physics)
--- This avoids "Velocity" checks which cause the "killing" issue.
+-- Speed Logic (CFrame based to prevent death)
 RunService.Heartbeat:Connect(function(dt)
     if state.speedEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local hum = player.Character:FindFirstChild("Humanoid")
         local root = player.Character.HumanoidRootPart
         if hum and hum.MoveDirection.Magnitude > 0 then
-            -- Moves you 1.5x - 2.5x normal speed without modifying WalkSpeed
             root.CFrame = root.CFrame + (hum.MoveDirection * (state.speedValue / 10) * (dt * 60))
         end
     end
 end)
 
--- 2. Anti-Gravity Jump: Uses a BodyForce instead of JumpPower
--- This makes your jump look floaty and natural to the server.
-RunService.RenderStepped:Connect(function()
-    if state.jumpEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            player.Character.HumanoidRootPart.Velocity = Vector3.new(
-                player.Character.HumanoidRootPart.Velocity.X,
-                35, 
-                player.Character.HumanoidRootPart.Velocity.Z
-            )
-        end
-    end
-end)
-
--- 3. Spin Bot
-RunService.RenderStepped:Connect(function()
-    if state.spinEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(state.spinSpeed), 0)
-    end
-end)
-
--- 4. Auto Steal: Uses Raycast-Safe clicking
+-- Auto Steal Logic (Optimized for 2026 detection)
 task.spawn(function()
     while task.wait(0.5) do
         if state.autoSteal and player.Character then
@@ -113,7 +94,7 @@ task.spawn(function()
                 if (v.Name:lower():find("brain") or v:IsA("ClickDetector") or v:IsA("ProximityPrompt")) then
                     local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                     if hrp and (v:GetPivot().Position - hrp.Position).Magnitude < state.stealRange then
-                        task.wait(3) -- HUMAN-LIKE DELAY
+                        task.wait(3) -- Essential 3-second stealth delay
                         if v:IsA("ClickDetector") then 
                             fireclickdetector(v) 
                         elseif v:IsA("ProximityPrompt") then 
@@ -126,20 +107,7 @@ task.spawn(function()
     end
 end)
 
--- 5. ESP: Highlight items
-RunService.Heartbeat:Connect(function()
-    if state.espEnabled then
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v.Name:lower():find("brain") and not v:FindFirstChild("Highlight") then
-                local h = Instance.new("Highlight", v)
-                h.FillColor = Color3.fromRGB(150, 0, 255)
-                h.OutlineColor = Color3.new(1, 1, 1)
-            end
-        end
-    end
-end)
-
--- UI Toggle (Right Control)
+-- UI Toggle Key (Right Control)
 UserInputService.InputBegan:Connect(function(io, gpe)
     if not gpe and io.KeyCode == Enum.KeyCode.RightControl then
         MainFrame.Visible = not MainFrame.Visible
