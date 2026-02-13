@@ -1,108 +1,155 @@
--- [[ 8 HUB: PINK GALAXY ]] --
+-- [[ 8 HUB: CUSTOM UI ]] --
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
--- Create UI
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-ScreenGui.Name = "8Hub_Main"
+-- Destroy existing if re-running
+if CoreGui:FindFirstChild("8Hub_Official") then CoreGui:FindFirstChild("8Hub_Official"):Destroy() end
 
--- Main Frame
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "8Hub_Official"
+
+-- Main Menu Container
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 350, 0, 400)
-Main.Position = UDim2.new(0.5, -175, 0.5, -200)
-Main.BackgroundColor3 = Color3.fromRGB(30, 0, 30) -- Dark Purple
+Main.Name = "MainFrame"
+Main.Size = UDim2.new(0, 420, 0, 480)
+Main.Position = UDim2.new(0.5, -210, 0.5, -240)
+Main.BackgroundColor3 = Color3.fromRGB(45, 10, 45) -- Deep Purple Base
 Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
 Main.Active = true
 Main.Draggable = true
 
--- Pink Glow Border
-local Border = Instance.new("UIStroke", Main)
-Border.Color = Color3.fromRGB(255, 20, 147) -- Hot Pink
-Border.Thickness = 3
+-- Pink Glow Stroke
+local Stroke = Instance.new("UIStroke", Main)
+Stroke.Color = Color3.fromRGB(255, 50, 180)
+Stroke.Thickness = 2
+Stroke.Transparency = 0.3
 
 local Corner = Instance.new("UICorner", Main)
-Corner.CornerRadius = UDim.new(0, 10)
+Corner.CornerRadius = UDim.new(0, 15)
 
--- Title
+-- Title Section
 local Title = Instance.new("TextLabel", Main)
-Title.Text = "8 HUB"
-Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "8 Hub"
+Title.Size = UDim2.new(1, 0, 0, 80)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 20, 147)
+Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 24
+Title.TextSize = 48
 
--- Toggle Button (Small Pink Circle)
-local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
-ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
-ToggleBtn.Text = "8"
-ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextSize = 20
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+-- Decorative Orbs (Pink Bubbles)
+local function CreateOrb(pos)
+    local Orb = Instance.new("Frame", Main)
+    Orb.Size = UDim2.new(0, 50, 0, 50)
+    Orb.Position = pos
+    Orb.BackgroundColor3 = Color3.fromRGB(255, 100, 220)
+    local C = Instance.new("UICorner", Orb)
+    C.CornerRadius = UDim.new(1, 0)
+    local G = Instance.new("UIGradient", Orb)
+    G.Color = ColorSequence.new(Color3.new(1,1,1), Color3.fromRGB(255, 20, 147))
+end
+CreateOrb(UDim2.new(0, 30, 0, 15))
+CreateOrb(UDim2.new(1, -80, 0, 15))
 
-ToggleBtn.MouseButton1Click:Connect(function()
-    Main.Visible = not Main.Visible
-end)
+-- Tab Container
+local TabBar = Instance.new("Frame", Main)
+TabBar.Size = UDim2.new(0.9, 0, 0, 40)
+TabBar.Position = UDim2.new(0.05, 0, 0, 90)
+TabBar.BackgroundTransparency = 1
 
--- [[ SETTINGS & TOGGLES ]] --
-_G.Settings = {
-    Speed = 50,
-    Spin = false,
-    InfJump = false,
-    AntiKB = false,
-    AutoGrab = false
-}
+local Layout = Instance.new("UIListLayout", TabBar)
+Layout.FillDirection = Enum.FillDirection.Horizontal
+Layout.Padding = UDim.new(0, 10)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-local function CreateToggle(name, yPos, varName)
-    local Btn = Instance.new("TextButton", Main)
-    Btn.Size = UDim2.new(0.8, 0, 0, 40)
-    Btn.Position = UDim2.new(0.1, 0, 0, yPos)
-    Btn.BackgroundColor3 = Color3.fromRGB(50, 0, 50)
-    Btn.Text = name .. ": OFF"
-    Btn.TextColor3 = Color3.new(1, 1, 1)
-    Btn.Font = Enum.Font.Gotham
-    Instance.new("UICorner", Btn)
+local function CreateTab(name, active)
+    local T = Instance.new("TextButton", TabBar)
+    T.Size = UDim2.new(0, 110, 1, 0)
+    T.BackgroundColor3 = active and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(35, 15, 35)
+    T.Text = name
+    T.TextColor3 = Color3.new(1,1,1)
+    T.Font = Enum.Font.GothamBold
+    T.TextSize = 12
+    Instance.new("UICorner", T).CornerRadius = UDim.new(0, 8)
+end
+CreateTab("Movement", true)
+CreateTab("Combat & Physics", false)
+CreateTab("Visuals & Misc", false)
+
+-- Toggle Button
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 130, 0, 40)
+OpenBtn.Position = UDim2.new(0, 20, 0, 20)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 5, 25)
+OpenBtn.Text = "8 Hub: ON/OFF"
+OpenBtn.TextColor3 = Color3.new(1, 1, 1)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.TextSize = 14
+local OBCorner = Instance.new("UICorner", OpenBtn)
+OBCorner.CornerRadius = UDim.new(0, 10)
+local OBStroke = Instance.new("UIStroke", OpenBtn)
+OBStroke.Color = Color3.fromRGB(255, 20, 147)
+
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+-- [[ FUNCTIONALITY BUTTONS ]] --
+_G.Settings = { Speed = 50, Spin = false, InfJump = false, AntiKB = false, AutoGrab = false, Freeze = false }
+
+local function AddToggle(name, y, var)
+    local F = Instance.new("Frame", Main)
+    F.Size = UDim2.new(0.9, 0, 0, 40)
+    F.Position = UDim2.new(0.05, 0, 0, y)
+    F.BackgroundTransparency = 1
     
-    Btn.MouseButton1Click:Connect(function()
-        _G.Settings[varName] = not _G.Settings[varName]
-        Btn.Text = name .. ": " .. (_G.Settings[varName] and "ON" or "OFF")
-        Btn.BackgroundColor3 = _G.Settings[varName] and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(50, 0, 50)
+    local L = Instance.new("TextLabel", F)
+    L.Text = name
+    L.Size = UDim2.new(0.5, 0, 1, 0)
+    L.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+    L.BackgroundTransparency = 1
+    L.TextXAlignment = Enum.TextXAlignment.Left
+    L.Font = Enum.Font.Gotham
+    L.TextSize = 16
+
+    local B = Instance.new("TextButton", F)
+    B.Size = UDim2.new(0, 50, 0, 25)
+    B.Position = UDim2.new(1, -60, 0.5, -12)
+    B.BackgroundColor3 = Color3.fromRGB(60, 20, 60)
+    B.Text = ""
+    local BC = Instance.new("UICorner", B)
+    BC.CornerRadius = UDim.new(1, 0)
+    
+    local Dot = Instance.new("Frame", B)
+    Dot.Size = UDim2.new(0, 18, 0, 18)
+    Dot.Position = UDim2.new(0, 4, 0.5, -9)
+    Dot.BackgroundColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
+
+    B.MouseButton1Click:Connect(function()
+        _G.Settings[var] = not _G.Settings[var]
+        B.BackgroundColor3 = _G.Settings[var] and Color3.fromRGB(180, 50, 255) or Color3.fromRGB(60, 20, 60)
+        Dot:TweenPosition(_G.Settings[var] and UDim2.new(1, -22, 0.5, -9) or UDim2.new(0, 4, 0.5, -9), "Out", "Quad", 0.2)
     end)
 end
 
-CreateToggle("Speed Boost", 70, "SpeedEnabled") -- Just added a check for this
-CreateToggle("Spin Bot", 120, "Spin")
-CreateToggle("Infinite Jump", 170, "InfJump")
-CreateToggle("Anti-Knockback", 220, "AntiKB")
-CreateToggle("Auto-Grab Items", 270, "AutoGrab")
+-- Alignment based on your image
+AddToggle("Walkspeed Boost", 150, "SpeedActive")
+AddToggle("Infinite Jump", 200, "InfJump")
+AddToggle("Freeze Animations", 250, "Freeze")
+AddToggle("Anti-Knockback", 300, "AntiKB")
+AddToggle("Auto-Grab Items", 350, "AutoGrab")
 
 -- [[ LOGIC ]] --
 RS.Heartbeat:Connect(function()
-    local Char = LP.Character
-    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
-
+    local Root = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    local Hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
     if Root and Hum then
-        -- Speed
-        if _G.Settings.SpeedEnabled then Hum.WalkSpeed = _G.Settings.Speed else Hum.WalkSpeed = 16 end
-        
-        -- Spin
-        if _G.Settings.Spin then
-            Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(25), 0)
-        end
-        
-        -- Anti-KB
-        if _G.Settings.AntiKB then
-            Root.Velocity = Vector3.new(0, Root.Velocity.Y, 0)
-        end
+        if _G.Settings.SpeedActive then Hum.WalkSpeed = _G.Settings.Speed else Hum.WalkSpeed = 16 end
+        if _G.Settings.AntiKB then Root.Velocity = Vector3.new(0, Root.Velocity.Y, 0) end
+        if _G.Settings.Freeze then for _, v in pairs(Hum:GetPlayingAnimationTracks()) do v:Stop() end end
     end
-    
-    -- Auto Grab
     if _G.Settings.AutoGrab and Root then
         for _, v in pairs(workspace:GetDescendants()) do
             if v:IsA("TouchTransmitter") and (Root.Position - v.Parent.Position).Magnitude <= 30 then
@@ -118,5 +165,3 @@ UIS.JumpRequest:Connect(function()
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
-
-print("8 Hub: Custom Pink Menu Loaded.")
