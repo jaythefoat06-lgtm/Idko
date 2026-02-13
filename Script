@@ -3,84 +3,134 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- Config
-local isSpeedEnabled, customSpeed = false, 25
-local isInfJumpEnabled = false
-local isAutoGrabEnabled = false
-local isSpinBotEnabled = false
-local isESPEnabled = false
+-- [[ CONFIGURATION & STATE ]]
+local state = {
+    speedEnabled = false, speedValue = 42,
+    jumpEnabled = false, jumpValue = 50,
+    spinEnabled = false, spinSpeed = 10,
+    autoSteal = false, stealRange = 30,
+    espEnabled = false,
+    galaxyMode = true,
+    autoDisableOnPlot = true
+}
 
--- UI Setup
+-- [[ UI INITIALIZATION ]]
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 280, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -140, 0.4, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-MainFrame.Active, MainFrame.Draggable = true, true
-Instance.new("UICorner", MainFrame)
+ScreenGui.Name = "JaysHubElite"
 
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 320, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -160, 0.4, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active, MainFrame.Draggable = true, true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+-- Galaxy Background (Matching Image)
 local GalaxyBG = Instance.new("ImageLabel", MainFrame)
 GalaxyBG.Size = UDim2.new(1, 0, 1, 0)
-GalaxyBG.Image = "rbxassetid://13143526189"
-GalaxyBG.ImageTransparency = 0.5
+GalaxyBG.Image = "rbxassetid://13143526189" 
+GalaxyBG.ImageTransparency = 0.6
 GalaxyBG.BackgroundTransparency = 1
-Instance.new("UICorner", GalaxyBG)
+GalaxyBG.ZIndex = 0
+Instance.new("UICorner", GalaxyBG).CornerRadius = UDim.new(0, 10)
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Text = "JAYS HUB V4"
-Title.TextColor3 = Color3.fromRGB(0, 255, 255)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 22
+-- Header
+local Header = Instance.new("TextLabel", MainFrame)
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.Text = "225 DUELS\nJAYS HUB"
+Header.TextColor3 = Color3.fromRGB(255, 255, 255)
+Header.BackgroundTransparency = 1
+Header.Font = Enum.Font.GothamBold
+Header.TextSize = 16
 
--- 1. FIX: STEALTH SPEED (Doesn't Kill)
-RunService.Stepped:Connect(function(_, deltaTime)
-    if isSpeedEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+-- [[ COMPONENT CREATORS ]]
+local function CreateToggle(text, pos, varName)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0.4, 0, 0, 30)
+    btn.Position = pos
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(80, 0, 200)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 12
+    Instance.new("UICorner", btn)
+
+    btn.MouseButton1Click:Connect(function()
+        state[varName] = not state[varName]
+        btn.BackgroundColor3 = state[varName] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(80, 0, 200)
+    end)
+end
+
+local function CreateSlider(text, pos, min, max, varName)
+    local label = Instance.new("TextLabel", MainFrame)
+    label.Size = UDim2.new(0.4, 0, 0, 15)
+    label.Position = pos
+    label.Text = text .. ": " .. state[varName]
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 10
+
+    local bar = Instance.new("Frame", MainFrame)
+    bar.Size = UDim2.new(0.4, 0, 0, 5)
+    bar.Position = pos + UDim2.new(0, 0, 0, 18)
+    bar.BackgroundColor3 = Color3.fromRGB(80, 0, 200)
+    
+    -- Basic slider logic could be added here for mouse movement
+end
+
+-- [[ FEATURES MAPPED FROM IMAGE ]]
+CreateToggle("Speed Boost", UDim2.new(0.05, 0, 0.15, 0), "speedEnabled")
+CreateSlider("Boost Speed", UDim2.new(0.05, 0, 0.23, 0), 20, 100, "speedValue")
+
+CreateToggle("Galaxy Mode", UDim2.new(0.55, 0, 0.15, 0), "galaxyMode")
+CreateSlider("Jump Power", UDim2.new(0.55, 0, 0.23, 0), 0, 100, "jumpValue")
+
+CreateToggle("Spin Bot", UDim2.new(0.05, 0, 0.35, 0), "spinEnabled")
+CreateSlider("Spin Speed", UDim2.new(0.05, 0, 0.43, 0), 1, 50, "spinSpeed")
+
+CreateToggle("Auto Steal", UDim2.new(0.05, 0, 0.55, 0), "autoSteal")
+CreateToggle("Optimizer + Xray", UDim2.new(0.55, 0, 0.55, 0), "espEnabled")
+
+local SaveBtn = Instance.new("TextButton", MainFrame)
+SaveBtn.Size = UDim2.new(0.9, 0, 0, 40)
+SaveBtn.Position = UDim2.new(0.05, 0, 0.85, 0)
+SaveBtn.Text = "SAVE CONFIG"
+SaveBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+SaveBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", SaveBtn)
+
+-- [[ LOGIC ENGINES ]]
+
+-- Stealth Speed (CFrame Nudge to prevent killing)
+RunService.Stepped:Connect(function(_, dt)
+    if state.speedEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local hum = player.Character.Humanoid
-        local root = player.Character.HumanoidRootPart
         if hum.MoveDirection.Magnitude > 0 then
-            -- We move the CFrame directly by a small amount per frame
-            -- This bypasses most "Velocity" based anti-cheats
-            root.CFrame = root.CFrame + (hum.MoveDirection * (customSpeed / 10) * (deltaTime * 60))
+            player.Character.HumanoidRootPart.CFrame += hum.MoveDirection * (state.speedValue / 10) * (dt * 60)
         end
     end
 end)
 
--- 2. SPIN BOT
+-- Spin Bot
 RunService.RenderStepped:Connect(function()
-    if isSpinBotEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(50), 0)
+    if state.spinEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(state.spinSpeed), 0)
     end
 end)
 
--- 3. ESP (SEE THROUGH WALLS)
-local function CreateESP(obj)
-    if isESPEnabled and (obj.Name:find("Brain") or obj:FindFirstChild("ClickDetector")) then
-        local box = Instance.new("Highlight")
-        box.Parent = obj
-        box.FillColor = Color3.fromRGB(0, 255, 255)
-        box.OutlineColor = Color3.new(1, 1, 1)
-        task.wait(5)
-        box:Destroy()
-    end
-end
-workspace.DescendantAdded:Connect(CreateESP)
-
--- 4. FIX: AUTO-STEAL (Aggressive Search)
+-- Auto Steal (Improved for Brainrot Games)
 task.spawn(function()
     while task.wait(0.5) do
-        if isAutoGrabEnabled and player.Character then
+        if state.autoSteal and player.Character then
             for _, v in pairs(workspace:GetDescendants()) do
                 if v.Name:lower():find("brain") or v:IsA("ClickDetector") or v:IsA("ProximityPrompt") then
-                    local root = player.Character:FindFirstChild("HumanoidRootPart")
-                    if root and (v:GetPivot().Position - root.Position).Magnitude < 30 then
-                        task.wait(0.1) -- Fast grab
+                    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and (v:GetPivot().Position - hrp.Position).Magnitude < state.stealRange then
+                        task.wait(3) -- Stealth Delay
                         if v:IsA("ClickDetector") then fireclickdetector(v)
-                        elseif v:IsA("ProximityPrompt") then fireproximityprompt(v)
-                        elseif v.Parent:FindFirstChildOfClass("ClickDetector") then
-                            fireclickdetector(v.Parent:FindFirstChildOfClass("ClickDetector"))
-                        end
+                        elseif v:IsA("ProximityPrompt") then fireproximityprompt(v) end
                     end
                 end
             end
@@ -88,35 +138,21 @@ task.spawn(function()
     end
 end)
 
--- UI BUTTON GENERATOR
-local offset = 60
-local function AddToggle(name, varName, callback)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0.8, 0, 0, 35)
-    btn.Position = UDim2.new(0.1, 0, 0, offset)
-    btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", btn)
-    
-    btn.MouseButton1Click:Connect(function()
-        _G[varName] = not _G[varName]
-        callback(_G[varName])
-        btn.Text = name .. (_G[varName] and ": ON" or ": OFF")
-        btn.BackgroundColor3 = _G[varName] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(30, 30, 30)
-    end)
-    offset = offset + 45
-end
+-- Xray / ESP
+RunService.Heartbeat:Connect(function()
+    if state.espEnabled then
+        for _, v in pairs(workspace:GetDescendants()) do
+            if (v.Name:lower():find("brain")) and not v:FindFirstChild("Highlight") then
+                local h = Instance.new("Highlight", v)
+                h.FillColor = Color3.fromRGB(150, 0, 255)
+            end
+        end
+    end
+end)
 
-AddToggle("Speed Boost", "sb", function(v) isSpeedEnabled = v end)
-AddToggle("Spin Bot", "spin", function(v) isSpinBotEnabled = v end)
-AddToggle("Brain ESP", "esp", function(v) isESPEnabled = v end)
-AddToggle("Auto Steal", "steal", function(v) isAutoGrabEnabled = v end)
-
-local SpeedInput = Instance.new("TextBox", MainFrame)
-SpeedInput.Size = UDim2.new(0.8, 0, 0, 35)
-SpeedInput.Position = UDim2.new(0.1, 0, 0, 340)
-SpeedInput.PlaceholderText = "Speed (Recommended 25-40)"
-SpeedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SpeedInput.TextColor3 = Color3.new(1,1,1)
-SpeedInput.FocusLost:Connect(function() customSpeed = tonumber(SpeedInput.Text) or 25 end)
+-- Toggle Menu Key
+UserInputService.InputBegan:Connect(function(io, gpe)
+    if not gpe and io.KeyCode == Enum.KeyCode.RightControl then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
