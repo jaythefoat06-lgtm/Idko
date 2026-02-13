@@ -1,97 +1,111 @@
--- [[ 8 HUB - PINK EDITION ]] --
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wallwv2", true))()
-local Window = Library:CreateWindow("8 Hub")
-
--- [[ THEME CUSTOMIZATION ]] --
--- Customizing the library colors to Pink
-_G.PinkTheme = Color3.fromRGB(255, 20, 147) 
-_G.DarkBg = Color3.fromRGB(30, 0, 30)
-
--- [[ CONFIGURATION ]] --
-_G.Settings = {
-    WalkSpeed = 50,
-    GrabRange = 30,
-    SpinSpeed = 25,
-    ESP_Enabled = false,
-    InfJump = false,
-    AntiKB = false,
-    AntiRagdoll = false,
-    FreezeIdle = false
-}
-
--- [[ UI TABS ]] --
-local Main = Window:CreateFolder("Movement")
-local Combat = Window:CreateFolder("Combat & Physics")
-local Visuals = Window:CreateFolder("Visuals & Misc")
-
--- [[ MOVEMENT ]] --
-Main:Slider("WalkSpeed", {min = 16, max = 250, default = 50}, function(v) _G.Settings.WalkSpeed = v end)
-Main:Toggle("Infinite Jump", function(state) _G.Settings.InfJump = state end)
-Main:Toggle("Freeze Animations", function(state) _G.Settings.FreezeIdle = state end)
-
--- [[ COMBAT ]] --
-Combat:Toggle("Anti-Knockback", function(state) _G.Settings.AntiKB = state end)
-Combat:Toggle("Anti-Ragdoll", function(state) _G.Settings.AntiRagdoll = state end)
-Combat:Toggle("Spin Bot", function(state) _G.SpinActive = state end)
-Combat:Slider("Spin Speed", {min = 0, max = 100, default = 25}, function(v) _G.Settings.SpinSpeed = v end)
-Combat:Toggle("Auto-Grab Items", function(state) _G.AutoGrab = state end)
-
--- [[ VISUALS ]] --
-Visuals:Toggle("Player ESP", function(state) _G.Settings.ESP_Enabled = state end)
-Visuals:Button("Pink Galaxy Graphics", function()
-    local L = game:GetService("Lighting")
-    L.Brightness = 2
-    L.OutdoorAmbient = Color3.fromRGB(255, 100, 200) -- Pink tint to world
-    L.ClockTime = 18 -- Sunset vibes
-    L.FogEnd = 999999
-end)
-
---- [[ PINK TOGGLE BUTTON ]] ---
-local UI_Visible = true
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-local OpenBtn = Instance.new("TextButton", ScreenGui)
-local Corner = Instance.new("UICorner", OpenBtn)
-
-OpenBtn.Name = "8Hub_Toggle"
-OpenBtn.Size = UDim2.new(0, 120, 0, 40)
-OpenBtn.Position = UDim2.new(0, 20, 0, 20)
-OpenBtn.BackgroundColor3 = _G.DarkBg
-OpenBtn.BorderSizePixel = 2
-OpenBtn.BorderColor3 = _G.PinkTheme
-OpenBtn.Text = "8 Hub: ON/OFF"
-OpenBtn.Font = Enum.Font.GothamBold
-OpenBtn.TextColor3 = _G.PinkTheme
-OpenBtn.TextSize = 14
-OpenBtn.Draggable = true
-Corner.CornerRadius = UDim.new(0, 8)
-
-OpenBtn.MouseButton1Click:Connect(function()
-    UI_Visible = not UI_Visible
-    local gui = game:GetService("CoreGui"):FindFirstChild("8 Hub") or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("8 Hub")
-    if gui then gui.Enabled = UI_Visible end
-end)
-
--- [[ CORE EXECUTION ]] --
-local Player = game:GetService("Players").LocalPlayer
+-- [[ 8 HUB: PINK GALAXY ]] --
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
 local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 
+-- Create UI
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "8Hub_Main"
+
+-- Main Frame
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 350, 0, 400)
+Main.Position = UDim2.new(0.5, -175, 0.5, -200)
+Main.BackgroundColor3 = Color3.fromRGB(30, 0, 30) -- Dark Purple
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+
+-- Pink Glow Border
+local Border = Instance.new("UIStroke", Main)
+Border.Color = Color3.fromRGB(255, 20, 147) -- Hot Pink
+Border.Thickness = 3
+
+local Corner = Instance.new("UICorner", Main)
+Corner.CornerRadius = UDim.new(0, 10)
+
+-- Title
+local Title = Instance.new("TextLabel", Main)
+Title.Text = "8 HUB"
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 20, 147)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 24
+
+-- Toggle Button (Small Pink Circle)
+local ToggleBtn = Instance.new("TextButton", ScreenGui)
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
+ToggleBtn.Text = "8"
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 20
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+end)
+
+-- [[ SETTINGS & TOGGLES ]] --
+_G.Settings = {
+    Speed = 50,
+    Spin = false,
+    InfJump = false,
+    AntiKB = false,
+    AutoGrab = false
+}
+
+local function CreateToggle(name, yPos, varName)
+    local Btn = Instance.new("TextButton", Main)
+    Btn.Size = UDim2.new(0.8, 0, 0, 40)
+    Btn.Position = UDim2.new(0.1, 0, 0, yPos)
+    Btn.BackgroundColor3 = Color3.fromRGB(50, 0, 50)
+    Btn.Text = name .. ": OFF"
+    Btn.TextColor3 = Color3.new(1, 1, 1)
+    Btn.Font = Enum.Font.Gotham
+    Instance.new("UICorner", Btn)
+    
+    Btn.MouseButton1Click:Connect(function()
+        _G.Settings[varName] = not _G.Settings[varName]
+        Btn.Text = name .. ": " .. (_G.Settings[varName] and "ON" or "OFF")
+        Btn.BackgroundColor3 = _G.Settings[varName] and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(50, 0, 50)
+    end)
+end
+
+CreateToggle("Speed Boost", 70, "SpeedEnabled") -- Just added a check for this
+CreateToggle("Spin Bot", 120, "Spin")
+CreateToggle("Infinite Jump", 170, "InfJump")
+CreateToggle("Anti-Knockback", 220, "AntiKB")
+CreateToggle("Auto-Grab Items", 270, "AutoGrab")
+
+-- [[ LOGIC ]] --
 RS.Heartbeat:Connect(function()
-    local Char = Player.Character
-    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+    local Char = LP.Character
     local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
 
-    if Hum and Root then
-        Hum.WalkSpeed = _G.Settings.WalkSpeed
-        if _G.Settings.AntiKB then Root.Velocity = Vector3.new(0, Root.Velocity.Y, 0) Root.RotVelocity = Vector3.new(0,0,0) end
-        if _G.Settings.AntiRagdoll then Hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false) Hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false) end
-        if _G.SpinActive then Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(_G.Settings.SpinSpeed), 0) end
-        if _G.Settings.FreezeIdle then for _, anim in pairs(Hum:GetPlayingAnimationTracks()) do anim:Stop() end end
+    if Root and Hum then
+        -- Speed
+        if _G.Settings.SpeedEnabled then Hum.WalkSpeed = _G.Settings.Speed else Hum.WalkSpeed = 16 end
+        
+        -- Spin
+        if _G.Settings.Spin then
+            Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(25), 0)
+        end
+        
+        -- Anti-KB
+        if _G.Settings.AntiKB then
+            Root.Velocity = Vector3.new(0, Root.Velocity.Y, 0)
+        end
     end
-
-    if _G.AutoGrab and Root then
+    
+    -- Auto Grab
+    if _G.Settings.AutoGrab and Root then
         for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("TouchTransmitter") and (Root.Position - v.Parent.Position).Magnitude <= _G.Settings.GrabRange then
+            if v:IsA("TouchTransmitter") and (Root.Position - v.Parent.Position).Magnitude <= 30 then
                 firetouchinterest(Root, v.Parent, 0)
                 firetouchinterest(Root, v.Parent, 1)
             end
@@ -100,9 +114,9 @@ RS.Heartbeat:Connect(function()
 end)
 
 UIS.JumpRequest:Connect(function()
-    if _G.Settings.InfJump and Player.Character:FindFirstChildOfClass("Humanoid") then
-        Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    if _G.Settings.InfJump and LP.Character:FindFirstChildOfClass("Humanoid") then
+        LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
-print("8 Hub Pink Loaded! Stay fabulous.")
+print("8 Hub: Custom Pink Menu Loaded.")
