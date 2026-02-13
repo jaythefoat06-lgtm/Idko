@@ -22,6 +22,4 @@ local function JayHalfwayTP(TargetPlayerName)
     end
 end
 
--- Example usage:
--- JayHalfwayTP("PlayerNameHere")
-print("Jay Halfway TP Loaded")
+
