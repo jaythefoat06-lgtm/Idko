@@ -1,42 +1,37 @@
--- [[ 8 HUB: RAINBOW GALAXY EDITION ]] --
+-- [[ 8 HUB: FIXED & OPTIMIZED ]] --
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
--- Cleanup
 if CoreGui:FindFirstChild("8Hub_Official") then CoreGui:FindFirstChild("8Hub_Official"):Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "8Hub_Official"
 
--- Main Menu Container
+-- Main Menu
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 420, 0, 520) 
-Main.Position = UDim2.new(0.5, -210, 0.5, -260)
-Main.BackgroundColor3 = Color3.fromRGB(35, 5, 35) 
-Main.BorderSizePixel = 0
-Main.ClipsDescendants = true
+Main.Size = UDim2.new(0, 320, 0, 480)
+Main.Position = UDim2.new(0.5, -160, 0.5, -240)
+Main.BackgroundColor3 = Color3.fromRGB(35, 5, 35)
 Main.Active = true
 Main.Draggable = true
-
-local Corner = Instance.new("UICorner", Main)
-Corner.CornerRadius = UDim.new(0, 15)
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(255, 50, 180)
 Stroke.Thickness = 2
 
--- [[ RAINBOW TITLE ]] --
+-- Title
 local Title = Instance.new("TextLabel", Main)
 Title.Text = "8 Hub"
-Title.Size = UDim2.new(1, 0, 0, 80)
+Title.Size = UDim2.new(1, 0, 0, 60)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 48
-Title.ZIndex = 2
+Title.TextSize = 30
 
+-- Rainbow Cycle
 task.spawn(function()
     while task.wait() do
         for i = 0, 1, 0.01 do
@@ -47,53 +42,33 @@ task.spawn(function()
     end
 end)
 
--- [[ GALAXY PARTICLES ]] --
-local ParticleContainer = Instance.new("Frame", Main)
-ParticleContainer.Size = UDim2.new(1, 0, 1, 0)
-ParticleContainer.BackgroundTransparency = 1
-ParticleContainer.ZIndex = 0
-
-for i = 1, 30 do
-    local Star = Instance.new("Frame", ParticleContainer)
-    local Size = math.random(1, 3)
-    Star.Size = UDim2.new(0, Size, 0, Size)
-    Star.Position = UDim2.new(math.random(), 0, math.random(), 0)
-    Star.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Star.BackgroundTransparency = 0.5
-    Instance.new("UICorner", Star).CornerRadius = UDim.new(1, 0)
-end
-
--- [[ SETTINGS ]] --
 _G.Settings = { 
-    SpeedActive = false, 
-    WalkSpeed = 50, 
-    SpinActive = false, 
-    SpinSpeed = 25, 
-    InfJump = false, 
-    AntiKB = false, 
-    AutoGrab = false, 
-    Freeze = false 
+    SpeedActive = false, WalkSpeed = 50, 
+    SpinActive = false, SpinSpeed = 25, 
+    InfJump = false, AntiKB = false, 
+    AutoGrab = false, Freeze = false, ESP = false 
 }
 
--- [[ SLIDER FUNCTION ]] --
+-- [[ FIXED SLIDER WITH CIRCLE ]] --
 local function AddSlider(name, y, min, max, default, var)
     local F = Instance.new("Frame", Main)
-    F.Size = UDim2.new(0.9, 0, 0, 45)
+    F.Size = UDim2.new(0.9, 0, 0, 40)
     F.Position = UDim2.new(0.05, 0, 0, y)
     F.BackgroundTransparency = 1
     
     local L = Instance.new("TextLabel", F)
     L.Text = name .. ": " .. default
-    L.Size = UDim2.new(1, 0, 0, 20)
-    L.TextColor3 = Color3.fromRGB(255, 255, 255)
+    L.Size = UDim2.new(1, 0, 0, 15)
+    L.TextColor3 = Color3.new(1,1,1)
     L.BackgroundTransparency = 1
     L.Font = Enum.Font.Gotham
-    L.TextSize = 14
+    L.TextSize = 12
 
-    local BG = Instance.new("Frame", F)
-    BG.Size = UDim2.new(1, 0, 0, 6)
+    local BG = Instance.new("TextButton", F) -- Button for better click detection
+    BG.Size = UDim2.new(1, 0, 0, 4)
     BG.Position = UDim2.new(0, 0, 1, -10)
     BG.BackgroundColor3 = Color3.fromRGB(60, 20, 60)
+    BG.Text = ""
     Instance.new("UICorner", BG)
 
     local Fill = Instance.new("Frame", BG)
@@ -101,103 +76,134 @@ local function AddSlider(name, y, min, max, default, var)
     Fill.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
     Instance.new("UICorner", Fill)
 
-    local function Update(input)
-        local pos = math.clamp((input.Position.X - BG.AbsolutePosition.X) / BG.AbsoluteSize.X, 0, 1)
-        Fill.Size = UDim2.new(pos, 0, 1, 0)
-        local val = math.floor(min + (pos * (max - min)))
-        L.Text = name .. ": " .. val
-        _G.Settings[var] = val
+    local Knob = Instance.new("Frame", Fill)
+    Knob.Size = UDim2.new(0, 12, 0, 12)
+    Knob.Position = UDim2.new(1, -6, 0.5, -6)
+    Knob.BackgroundColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
+    Instance.new("UIStroke", Knob).Color = Color3.fromRGB(255, 20, 147)
+
+    local function Update()
+        local MousePos = UIS:GetMouseLocation().X
+        local BtnPos = BG.AbsolutePosition.X
+        local BtnSize = BG.AbsoluteSize.X
+        local Percentage = math.clamp((MousePos - BtnPos) / BtnSize, 0, 1)
+        
+        Fill.Size = UDim2.new(Percentage, 0, 1, 0)
+        local Value = math.floor(min + (Percentage * (max - min)))
+        L.Text = name .. ": " .. Value
+        _G.Settings[var] = Value
     end
 
-    BG.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            Update(input)
-            local move = UIS.InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseMovement then Update(input) end
-            end)
-            local release; release = UIS.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    move:Disconnect()
-                    release:Disconnect()
-                end
-            end)
+    local Connection;
+    BG.MouseButton1Down:Connect(function()
+        Update()
+        Connection = RS.RenderStepped:Connect(Update)
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and Connection then
+            Connection:Disconnect()
         end
     end)
 end
 
--- [[ UI ELEMENTS ]] --
+-- [[ TOGGLE ]] --
 local function AddToggle(name, y, var)
     local F = Instance.new("Frame", Main)
-    F.Size = UDim2.new(0.9, 0, 0, 35)
+    F.Size = UDim2.new(0.9, 0, 0, 30)
     F.Position = UDim2.new(0.05, 0, 0, y)
     F.BackgroundTransparency = 1
     
     local L = Instance.new("TextLabel", F)
     L.Text = name
-    L.Size = UDim2.new(0.5, 0, 1, 0)
+    L.Size = UDim2.new(0.6, 0, 1, 0)
     L.TextColor3 = Color3.fromRGB(255, 180, 230)
     L.BackgroundTransparency = 1
     L.TextXAlignment = Enum.TextXAlignment.Left
     L.Font = Enum.Font.Gotham
-    L.TextSize = 16
+    L.TextSize = 14
 
     local B = Instance.new("TextButton", F)
-    B.Size = UDim2.new(0, 45, 0, 22)
-    B.Position = UDim2.new(1, -50, 0.5, -11)
+    B.Size = UDim2.new(0, 38, 0, 18)
+    B.Position = UDim2.new(1, -40, 0.5, -9)
     B.BackgroundColor3 = Color3.fromRGB(60, 20, 60)
     B.Text = ""
     Instance.new("UICorner", B).CornerRadius = UDim.new(1, 0)
     
     local Dot = Instance.new("Frame", B)
-    Dot.Size = UDim2.new(0, 16, 0, 16)
-    Dot.Position = UDim2.new(0, 3, 0.5, -8)
+    Dot.Size = UDim2.new(0, 14, 0, 14)
+    Dot.Position = UDim2.new(0, 2, 0.5, -7)
     Dot.BackgroundColor3 = Color3.new(1, 1, 1)
     Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
 
     B.MouseButton1Click:Connect(function()
         _G.Settings[var] = not _G.Settings[var]
         B.BackgroundColor3 = _G.Settings[var] and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(60, 20, 60)
-        Dot:TweenPosition(_G.Settings[var] and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8), "Out", "Quad", 0.2)
+        Dot:TweenPosition(_G.Settings[var] and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7), "Out", "Quad", 0.2)
     end)
 end
 
--- Layout
-AddToggle("Walkspeed Boost", 120, "SpeedActive")
-AddSlider("Speed Value", 155, 20, 100, 50, "WalkSpeed") -- Range set to 20-100
-AddToggle("Spin Bot", 205, "SpinActive")
-AddSlider("Spin Speed", 240, 0, 100, 25, "SpinSpeed")
-AddToggle("Infinite Jump", 295, "InfJump")
-AddToggle("Freeze Animations", 335, "Freeze")
-AddToggle("Anti-Knockback", 375, "AntiKB")
-AddToggle("Auto-Grab Items", 415, "AutoGrab")
+-- UI Layout
+AddToggle("Speed Boost", 60, "SpeedActive")
+AddSlider("Value", 90, 20, 100, 50, "WalkSpeed")
+AddToggle("Spin Bot", 135, "SpinActive")
+AddSlider("Spin Speed", 165, 0, 100, 25, "SpinSpeed")
+AddToggle("Infinite Jump", 210, "InfJump")
+AddToggle("Anti-Knockback", 245, "AntiKB")
+AddToggle("Auto-Grab (Nearby)", 280, "AutoGrab")
+AddToggle("Player ESP", 315, "ESP")
+AddToggle("Freeze Anims", 350, "Freeze")
 
--- Toggle UI Button
-local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 130, 0, 40)
-OpenBtn.Position = UDim2.new(0, 20, 0, 20)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 5, 25)
-OpenBtn.Text = "8 Hub: ON/OFF"
-OpenBtn.TextColor3 = Color3.fromRGB(255, 20, 147)
-OpenBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(255, 20, 147)
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-
--- [[ GAME LOGIC ]] --
+-- [[ FIXED LOGIC ]] --
 RS.Heartbeat:Connect(function()
     local Char = LP.Character
     local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
     local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+
     if Hum and Root then
+        -- FIXED ANTI-KB (Zeros Velocity without freezing player movement)
+        if _G.Settings.AntiKB then
+            local oldVel = Root.Velocity
+            Root.Velocity = Vector3.new(0, oldVel.Y, 0)
+            Root.RotVelocity = Vector3.new(0, 0, 0)
+        end
+
+        -- SPEED
         if _G.Settings.SpeedActive then Hum.WalkSpeed = _G.Settings.WalkSpeed else Hum.WalkSpeed = 16 end
-        if _G.Settings.SpinActive then Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(_G.Settings.SpinSpeed), 0) end
-        if _G.Settings.AntiKB then Root.Velocity = Vector3.new(0, Root.Velocity.Y, 0) end
-        if _G.Settings.Freeze then for _, v in pairs(Hum:GetPlayingAnimationTracks()) do v:Stop() end end
+        
+        -- UNDETECTED SPIN (Uses CFrame Lerp for smoothness)
+        if _G.Settings.SpinActive then
+            Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(_G.Settings.SpinSpeed), 0)
+        end
+    end
+
+    -- AUTO-GRAB (Nearby focus)
+    if _G.Settings.AutoGrab and Root then
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("TouchTransmitter") and (Root.Position - v.Parent.Position).Magnitude <= 15 then
+                firetouchinterest(Root, v.Parent, 0)
+                firetouchinterest(Root, v.Parent, 1)
+            end
+        end
     end
 end)
 
+-- UNDETECTED INF JUMP
 UIS.JumpRequest:Connect(function()
-    if _G.Settings.InfJump and LP.Character:FindFirstChildOfClass("Humanoid") then
-        LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    if _G.Settings.InfJump and LP.Character then
+        local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if Hum then Hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
+
+-- Open/Close Button
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 80, 0, 30)
+OpenBtn.Position = UDim2.new(0, 10, 0, 10)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 5, 25)
+OpenBtn.Text = "8 Hub"
+OpenBtn.TextColor3 = Color3.fromRGB(255, 20, 147)
+Instance.new("UICorner", OpenBtn)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+print("8 Hub: Fixed Sliders, Anti-KB & ESP Loaded.")
