@@ -1,198 +1,27 @@
--- [[ 8 HUB: STEALTH + TYPING BOXES ]] --
+-- [[ JAY HALFWAY TP ]] --
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
-local RS = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 
--- Clean up existing UI
-if CoreGui:FindFirstChild("8Hub_Official") then CoreGui:FindFirstChild("8Hub_Official"):Destroy() end
-
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "8Hub_Official"
-
--- Main Menu
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 280, 0, 440)
-Main.Position = UDim2.new(0.5, -140, 0.5, -220)
-Main.BackgroundColor3 = Color3.fromRGB(25, 5, 25)
-Main.Active = true
-Main.Draggable = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Thickness = 2
-
--- Rainbow Title Logic
-local Title = Instance.new("TextLabel", Main)
-Title.Text = "8 Hub"
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 28
-task.spawn(function()
-    while task.wait() do
-        for i = 0, 1, 0.01 do
-            Title.TextColor3 = Color3.fromHSV(i, 0.6, 1)
-            Stroke.Color = Color3.fromHSV(i, 0.6, 1)
-            task.wait(0.05)
-        end
-    end
-end)
-
-_G.Settings = { 
-    SpeedActive = false, WalkSpeed = 50, 
-    SpinActive = false, SpinSpeed = 25, 
-    InfJump = false, AntiKB = false, 
-    AutoGrab = false, Freeze = false 
+_G.JaySettings = {
+    Enabled = true,
+    Distance = 5, -- How many studs away you stay
+    Height = 2    -- Slight height offset to prevent clipping
 }
 
--- [[ UI HELPER FUNCTIONS ]] --
-local function AddInputBox(name, y, default, var)
-    local F = Instance.new("Frame", Main)
-    F.Size = UDim2.new(0.9, 0, 0, 35)
-    F.Position = UDim2.new(0.05, 0, 0, y)
-    F.BackgroundTransparency = 1
-    
-    local L = Instance.new("TextLabel", F)
-    L.Text = name
-    L.Size = UDim2.new(0.6, 0, 1, 0)
-    L.TextColor3 = Color3.new(1,1,1)
-    L.BackgroundTransparency = 1
-    L.Font = Enum.Font.Gotham
-    L.TextSize = 14
-    L.TextXAlignment = Enum.TextXAlignment.Left
-
-    local Box = Instance.new("TextBox", F)
-    Box.Size = UDim2.new(0, 60, 0, 25)
-    Box.Position = UDim2.new(1, -65, 0.5, -12)
-    Box.BackgroundColor3 = Color3.fromRGB(45, 10, 45)
-    Box.Text = tostring(default)
-    Box.TextColor3 = Color3.fromRGB(255, 20, 147)
-    Box.Font = Enum.Font.GothamBold
-    Box.TextSize = 14
-    Instance.new("UICorner", Box)
-    
-    Box.FocusLost:Connect(function()
-        local val = tonumber(Box.Text)
-        if val then _G.Settings[var] = val else Box.Text = tostring(_G.Settings[var]) end
-    end)
-end
-
-local function AddToggle(name, y, var)
-    local F = Instance.new("Frame", Main)
-    F.Size = UDim2.new(0.9, 0, 0, 30)
-    F.Position = UDim2.new(0.05, 0, 0, y)
-    F.BackgroundTransparency = 1
-    
-    local L = Instance.new("TextLabel", F)
-    L.Text = name
-    L.Size = UDim2.new(0.7, 0, 1, 0)
-    L.TextColor3 = Color3.fromRGB(255, 180, 230)
-    L.BackgroundTransparency = 1
-    L.TextXAlignment = Enum.TextXAlignment.Left
-    L.Font = Enum.Font.Gotham
-    L.TextSize = 13
-
-    local B = Instance.new("TextButton", F)
-    B.Size = UDim2.new(0, 35, 0, 18)
-    B.Position = UDim2.new(1, -40, 0.5, -9)
-    B.BackgroundColor3 = Color3.fromRGB(60, 20, 60)
-    B.Text = ""
-    Instance.new("UICorner", B).CornerRadius = UDim.new(1, 0)
-    
-    local Dot = Instance.new("Frame", B)
-    Dot.Size = UDim2.new(0, 14, 0, 14)
-    Dot.Position = UDim2.new(0, 2, 0.5, -7)
-    Dot.BackgroundColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
-
-    B.MouseButton1Click:Connect(function()
-        _G.Settings[var] = not _G.Settings[var]
-        B.BackgroundColor3 = _G.Settings[var] and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(60, 20, 60)
-        Dot:TweenPosition(_G.Settings[var] and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7), "Out", "Quad", 0.1)
-    end)
-end
-
--- UI Layout Initialization
-AddToggle("Speed Boost", 60, "SpeedActive")
-AddInputBox("Speed Value", 95, 50, "WalkSpeed")
-AddToggle("Spin Bot", 135, "SpinActive")
-AddInputBox("Spin Power", 170, 25, "SpinSpeed")
-AddToggle("Infinite Jump", 210, "InfJump")
-AddToggle("Anti-Knockback", 245, "AntiKB")
-AddToggle("Auto-Grab (Nearby)", 280, "AutoGrab")
-AddToggle("Freeze Idle", 315, "Freeze")
-
--- Toggle Menu Visibility
-local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 70, 0, 30)
-OpenBtn.Position = UDim2.new(0, 10, 0, 10)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 5, 25)
-OpenBtn.Text = "8 Hub"
-OpenBtn.TextColor3 = Color3.fromRGB(255, 20, 147)
-Instance.new("UICorner", OpenBtn)
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-
--- [[ OPTIMIZED PROXIMITY AUTO-GRAB ]] --
-task.spawn(function()
-    while task.wait(0.1) do
-        if _G.Settings.AutoGrab then
-            local Char = LP.Character
-            local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-            if Root then
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("ProximityPrompt") then
-                        local parent = v.Parent
-                        if parent:IsA("BasePart") then
-                            local dist = (Root.Position - parent.Position).Magnitude
-                            if dist <= 15 then -- Radius to detect "Grab" prompts
-                                fireproximityprompt(v)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- [[ STEALTH CORE LOGIC ]] --
-RS.Heartbeat:Connect(function()
-    local Char = LP.Character
-    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
-    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-
-    if Hum and Root then
-        -- Movement Tweaks
-        if _G.Settings.SpeedActive then Hum.WalkSpeed = _G.Settings.WalkSpeed else Hum.WalkSpeed = 16 end
+local function JayHalfwayTP(TargetPlayerName)
+    local Target = Players:FindFirstChild(TargetPlayerName)
+    if Target and Target.Character and Target.Character:FindFirstChild("HumanoidRootPart") then
+        local MyRoot = LP.Character:FindFirstChild("HumanoidRootPart")
+        local TargetRoot = Target.Character.HumanoidRootPart
         
-        if _G.Settings.SpinActive then
-            Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(_G.Settings.SpinSpeed), 0)
-        end
-
-        -- Animation Freeze
-        if _G.Settings.Freeze then
-            for _, track in pairs(Hum:GetPlayingAnimationTracks()) do track:AdjustSpeed(0) end
-        else
-            for _, track in pairs(Hum:GetPlayingAnimationTracks()) do track:AdjustSpeed(1) end
-        end
-
-        -- Anti-Knockback
-        if _G.Settings.AntiKB then
-            local vel = Root.AssemblyLinearVelocity
-            if vel.Magnitude > Hum.WalkSpeed + 5 then
-                Root.AssemblyLinearVelocity = Vector3.new(0, vel.Y, 0)
-            end
+        if MyRoot and TargetRoot then
+            -- Logic: Sets your position to the target's position, 
+            -- but moved back by the Distance setting
+            MyRoot.CFrame = TargetRoot.CFrame * CFrame.new(0, _G.JaySettings.Height, _G.JaySettings.Distance)
         end
     end
-end)
+end
 
--- Jump Logic
-UIS.JumpRequest:Connect(function()
-    if _G.Settings.InfJump and LP.Character then
-        local Root = LP.Character:FindFirstChild("HumanoidRootPart")
-        if Root then
-            Root.AssemblyLinearVelocity = Vector3.new(Root.AssemblyLinearVelocity.X, 50, Root.AssemblyLinearVelocity.Z)
-        end
-    end
-end)
+-- Example usage:
+-- JayHalfwayTP("PlayerNameHere")
+print("Jay Halfway TP Loaded")
