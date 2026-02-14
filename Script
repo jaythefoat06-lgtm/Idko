@@ -1,73 +1,101 @@
--- [[ PEPSI-STYLE MENU: SAFE AUTO-STEAL ]] --
+-- [[ PEPSI-STYLE: VISION GRAB + PROGRESS BAR ]] --
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- UI SETUP
+-- 1. UI SETUP (MAIN MENU)
 local SG = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local Frame = Instance.new("Frame", SG)
-local Title = Instance.new("TextLabel", Frame)
 local UIList = Instance.new("UIListLayout", Frame)
 
-Frame.Size = UDim2.new(0, 220, 0, 320)
-Frame.Position = UDim2.new(0.1, 0, 0.4, 0) -- Positioned to the side like the video
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+Frame.Size = UDim2.new(0, 200, 0, 150)
+Frame.Position = UDim2.new(0, 50, 0.5, -75)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 Frame.BackgroundTransparency = 0.2
-Frame.Active = true
-Frame.Draggable = true
-
-local Corner = Instance.new("UICorner", Frame)
-Corner.CornerRadius = UDim.new(0, 10)
-
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "PEPSI V2 | SAFE"
-Title.TextColor3 = Color3.fromRGB(180, 100, 255)
-Title.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-Title.Font = Enum.Font.GothamBold
+Instance.new("UICorner", Frame)
 
 UIList.Padding = UDim.new(0, 5)
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- TOGGLE LOGIC
-local AutoStealActive = false
-local AutoStealRange = 20 -- Set to 20 studs for safety
+-- 2. PROGRESS BAR SETUP (TOP OF SCREEN)
+local BarContainer = Instance.new("Frame", SG)
+local BarFill = Instance.new("Frame", BarContainer)
+local BarText = Instance.new("TextLabel", BarContainer)
+
+BarContainer.Size = UDim2.new(0, 300, 0, 25)
+BarContainer.Position = UDim2.new(0.5, -150, 0, 50) -- Top Center
+BarContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+BarContainer.Visible = false
+Instance.new("UICorner", BarContainer)
+
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.BackgroundColor3 = Color3.fromRGB(150, 0, 255)
+Instance.new("UICorner", BarFill)
+
+BarText.Size = UDim2.new(1, 0, 1, 0)
+BarText.BackgroundTransparency = 1
+BarText.Text = "COLLECTING..."
+BarText.TextColor3 = Color3.fromRGB(255, 255, 255)
+BarText.Font = Enum.Font.GothamBold
+BarText.TextSize = 14
+
+-- TOGGLE STATE
+local VisionGrabActive = false
 
 -- FUNCTION: CREATE BUTTON
 local function AddToggle(name, callback)
     local btn = Instance.new("TextButton", Frame)
     btn.Size = UDim2.new(0.9, 0, 0, 40)
     btn.Text = name
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 70)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.GothamMedium
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", btn)
 
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
-        btn.BackgroundColor3 = active and Color3.fromRGB(120, 50, 255) or Color3.fromRGB(45, 45, 70)
+        btn.BackgroundColor3 = active and Color3.fromRGB(120, 50, 255) or Color3.fromRGB(40, 40, 60)
         callback(active)
     end)
 end
 
---- [[ THE AUTO-STEAL LOOP ]] ---
+-- PROGRESS BAR ANIMATION
+local function ShowProgress(duration)
+    BarContainer.Visible = true
+    BarFill:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Linear", duration)
+    task.wait(duration)
+    BarFill.Size = UDim2.new(0, 0, 1, 0)
+    BarContainer.Visible = false
+end
+
+--- [[ THE VISION-CASTING LOOP ]] ---
 task.spawn(function()
-    while task.wait(0.2) do -- Checks 5 times per second
-        if AutoStealActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local myPos = LocalPlayer.Character.HumanoidRootPart.Position
-            
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("ProximityPrompt") then
-                    -- CALCULATION: Distance between you and the item
-                    local itemPos = obj.Parent:IsA("BasePart") and obj.Parent.Position or obj.Parent:FindFirstChildWhichIsA("BasePart") and obj.Parent:FindFirstChildWhichIsA("BasePart").Position
+    while task.wait(0.1) do
+        if VisionGrabActive and LocalPlayer.Character then
+            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                -- Look 15 studs in front of the character
+                local rayOrigin = root.Position
+                local rayDirection = root.CFrame.LookVector * 15 
+                
+                local raycastParams = RaycastParams.new()
+                raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+                local result = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+
+                if result and result.Instance then
+                    -- Search the object or its parent for a prompt
+                    local prompt = result.Instance:FindFirstChildOfClass("ProximityPrompt") or result.Instance.Parent:FindFirstChildOfClass("ProximityPrompt")
                     
-                    if itemPos then
-                        local distance = (myPos - itemPos).Magnitude
-                        
-                        -- Only fire if you are within the safe range
-                        if distance <= AutoStealRange then
-                            fireproximityprompt(obj)
-                        end
+                    if prompt and prompt.Enabled then
+                        fireproximityprompt(prompt)
+                        -- Show the bar based on the prompt's hold duration
+                        task.spawn(function()
+                            ShowProgress(prompt.HoldDuration > 0 and prompt.HoldDuration or 0.2)
+                        end)
+                        task.wait(prompt.HoldDuration + 0.1) -- Wait for it to finish
                     end
                 end
             end
@@ -75,27 +103,11 @@ task.spawn(function()
     end
 end)
 
---- [[ ADDING THE BUTTONS ]] ---
-
-AddToggle("Auto-Steal (Safe)", function(state)
-    AutoStealActive = state
+AddToggle("Vision Auto-Grab", function(state)
+    VisionGrabActive = state
 end)
 
-AddToggle("Speed (80)", function(state)
-    local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-    if hum then hum.WalkSpeed = state and 80 or 16 end
-end)
-
-AddToggle("Infinite Jump", function(state)
-    _G.InfJump = state
-    UserInputService.JumpRequest:Connect(function()
-        if _G.InfJump then
-            LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-        end
-    end)
-end)
-
--- Toggle Menu Visibility (Right Control)
+-- Hide Menu Key
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightControl then
         SG.Enabled = not SG.Enabled
