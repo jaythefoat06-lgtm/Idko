@@ -1,115 +1,48 @@
--- [[ PEPSI-STYLE: VISION GRAB + PROGRESS BAR ]] --
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+-- Create the UI
+local ScreenGui = Instance.new("ScreenGui")
+local MainButton = Instance.new("TextButton")
+local status = false -- The toggle state
 
--- 1. UI SETUP (MAIN MENU)
-local SG = Instance.new("ScreenGui", game:GetService("CoreGui"))
-local Frame = Instance.new("Frame", SG)
-local UIList = Instance.new("UIListLayout", Frame)
+-- Properties
+ScreenGui.Parent = game.CoreGui -- Places it over the game UI
+MainButton.Parent = ScreenGui
+MainButton.Size = UDim2.new(0, 150, 0, 50)
+MainButton.Position = UDim2.new(0.5, -75, 0.1, 0) -- Top center
+MainButton.Text = "Auto Pickup: OFF"
+MainButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- Red
 
-Frame.Size = UDim2.new(0, 200, 0, 150)
-Frame.Position = UDim2.new(0, 50, 0.5, -75)
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-Frame.BackgroundTransparency = 0.2
-Instance.new("UICorner", Frame)
-
-UIList.Padding = UDim.new(0, 5)
-UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- 2. PROGRESS BAR SETUP (TOP OF SCREEN)
-local BarContainer = Instance.new("Frame", SG)
-local BarFill = Instance.new("Frame", BarContainer)
-local BarText = Instance.new("TextLabel", BarContainer)
-
-BarContainer.Size = UDim2.new(0, 300, 0, 25)
-BarContainer.Position = UDim2.new(0.5, -150, 0, 50) -- Top Center
-BarContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-BarContainer.Visible = false
-Instance.new("UICorner", BarContainer)
-
-BarFill.Size = UDim2.new(0, 0, 1, 0)
-BarFill.BackgroundColor3 = Color3.fromRGB(150, 0, 255)
-Instance.new("UICorner", BarFill)
-
-BarText.Size = UDim2.new(1, 0, 1, 0)
-BarText.BackgroundTransparency = 1
-BarText.Text = "COLLECTING..."
-BarText.TextColor3 = Color3.fromRGB(255, 255, 255)
-BarText.Font = Enum.Font.GothamBold
-BarText.TextSize = 14
-
--- TOGGLE STATE
-local VisionGrabActive = false
-
--- FUNCTION: CREATE BUTTON
-local function AddToggle(name, callback)
-    local btn = Instance.new("TextButton", Frame)
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Text = name
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamMedium
-    Instance.new("UICorner", btn)
-
-    local active = false
-    btn.MouseButton1Click:Connect(function()
-        active = not active
-        btn.BackgroundColor3 = active and Color3.fromRGB(120, 50, 255) or Color3.fromRGB(40, 40, 60)
-        callback(active)
-    end)
-end
-
--- PROGRESS BAR ANIMATION
-local function ShowProgress(duration)
-    BarContainer.Visible = true
-    BarFill:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Linear", duration)
-    task.wait(duration)
-    BarFill.Size = UDim2.new(0, 0, 1, 0)
-    BarContainer.Visible = false
-end
-
---- [[ THE VISION-CASTING LOOP ]] ---
-task.spawn(function()
-    while task.wait(0.1) do
-        if VisionGrabActive and LocalPlayer.Character then
-            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if root then
-                -- Look 15 studs in front of the character
-                local rayOrigin = root.Position
-                local rayDirection = root.CFrame.LookVector * 15 
-                
-                local raycastParams = RaycastParams.new()
-                raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
-                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-
-                local result = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-
-                if result and result.Instance then
-                    -- Search the object or its parent for a prompt
-                    local prompt = result.Instance:FindFirstChildOfClass("ProximityPrompt") or result.Instance.Parent:FindFirstChildOfClass("ProximityPrompt")
-                    
-                    if prompt and prompt.Enabled then
-                        fireproximityprompt(prompt)
-                        -- Show the bar based on the prompt's hold duration
-                        task.spawn(function()
-                            ShowProgress(prompt.HoldDuration > 0 and prompt.HoldDuration or 0.2)
-                        end)
-                        task.wait(prompt.HoldDuration + 0.1) -- Wait for it to finish
-                    end
-                end
+-- Auto Pickup Logic
+local function startPickup()
+    local player = game.Players.LocalPlayer
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    
+    if root and status then
+        for _, item in ipairs(workspace:GetChildren()) do
+            if item:IsA("BasePart") and (root.Position - item.Position).Magnitude < 25 then
+                item.CFrame = root.CFrame
             end
         end
     end
+end
+
+-- Toggle Function
+MainButton.MouseButton1Click:Connect(function()
+    status = not status
+    if status then
+        MainButton.Text = "Auto Pickup: ON"
+        MainButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- Green
+    else
+        MainButton.Text = "Auto Pickup: OFF"
+        MainButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- Red
+    end
 end)
 
-AddToggle("Vision Auto-Grab", function(state)
-    VisionGrabActive = state
-end)
-
--- Hide Menu Key
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.RightControl then
-        SG.Enabled = not SG.Enabled
+-- Run the check every 0.1 seconds
+spawn(function()
+    while true do
+        task.wait(0.1)
+        if status then
+            startPickup()
+        end
     end
 end)
