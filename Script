@@ -1,48 +1,52 @@
--- Create the UI
-local ScreenGui = Instance.new("ScreenGui")
-local MainButton = Instance.new("TextButton")
-local status = false -- The toggle state
+-- Settings
+local TWEEN_SPEED = 50 -- Higher = Faster travel
 
--- Properties
-ScreenGui.Parent = game.CoreGui -- Places it over the game UI
-MainButton.Parent = ScreenGui
-MainButton.Size = UDim2.new(0, 150, 0, 50)
-MainButton.Position = UDim2.new(0.5, -75, 0.1, 0) -- Top center
-MainButton.Text = "Auto Pickup: OFF"
-MainButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- Red
+-- Services
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Auto Pickup Logic
-local function startPickup()
-    local player = game.Players.LocalPlayer
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    
-    if root and status then
-        for _, item in ipairs(workspace:GetChildren()) do
-            if item:IsA("BasePart") and (root.Position - item.Position).Magnitude < 25 then
-                item.CFrame = root.CFrame
-            end
-        end
+-- Create UI
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Frame.Active = true
+Frame.Draggable = true
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "Custom TP Menu"
+Title.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Title.TextColor3 = Color3.new(1, 1, 1)
+
+local TpButton = Instance.new("TextButton", Frame)
+TpButton.Size = UDim2.new(0.8, 0, 0, 40)
+TpButton.Position = UDim2.new(0.1, 0, 0.45, 0)
+TpButton.Text = "Smooth TP to Random"
+
+-- Smooth Teleport Function
+local function smoothTeleport(targetPart)
+    local character = LocalPlayer.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local root = character.HumanoidRootPart
+        local distance = (root.Position - targetPart.Position).Magnitude
+        local duration = distance / TWEEN_SPEED
+        
+        local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(root, info, {CFrame = targetPart.CFrame})
+        
+        tween:Play()
     end
 end
 
--- Toggle Function
-MainButton.MouseButton1Click:Connect(function()
-    status = not status
-    if status then
-        MainButton.Text = "Auto Pickup: ON"
-        MainButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- Green
-    else
-        MainButton.Text = "Auto Pickup: OFF"
-        MainButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- Red
-    end
-end)
-
--- Run the check every 0.1 seconds
-spawn(function()
-    while true do
-        task.wait(0.1)
-        if status then
-            startPickup()
-        end
+-- Button Logic
+TpButton.MouseButton1Click:Connect(function()
+    local allPlayers = Players:GetPlayers()
+    local target = allPlayers[math.random(1, #allPlayers)]
+    
+    if target ~= LocalPlayer and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        smoothTeleport(target.Character.HumanoidRootPart)
     end
 end)
