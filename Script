@@ -1,25 +1,67 @@
--- [[ JAY HALFWAY TP ]] --
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local frame = script.Parent.Frame -- Change to your Frame name
 
-_G.JaySettings = {
-    Enabled = true,
-    Distance = 5, -- How many studs away you stay
-    Height = 2    -- Slight height offset to prevent clipping
-}
+-- State Variables
+local speedActive = false
+local autoStealActive = false
+local espActive = false
 
-local function JayHalfwayTP(TargetPlayerName)
-    local Target = Players:FindFirstChild(TargetPlayerName)
-    if Target and Target.Character and Target.Character:FindFirstChild("HumanoidRootPart") then
-        local MyRoot = LP.Character:FindFirstChild("HumanoidRootPart")
-        local TargetRoot = Target.Character.HumanoidRootPart
-        
-        if MyRoot and TargetRoot then
-            -- Logic: Sets your position to the target's position, 
-            -- but moved back by the Distance setting
-            MyRoot.CFrame = TargetRoot.CFrame * CFrame.new(0, _G.JaySettings.Height, _G.JaySettings.Distance)
+-- 1. SPEED BOOST TOGGLE
+frame.SpeedBtn.MouseButton1Click:Connect(function()
+    speedActive = not speedActive
+    if speedActive then
+        character.Humanoid.WalkSpeed = 100
+        frame.SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    else
+        character.Humanoid.WalkSpeed = 16
+        frame.SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    end
+end)
+
+-- 2. AUTO-STEAL (Check for nearby items)
+task.spawn(function()
+    while task.wait(0.5) do
+        if autoStealActive then
+            for _, item in pairs(workspace:GetDescendants()) do
+                if item:IsA("ProximityPrompt") then
+                    -- Simulates pressing 'E'
+                    fireproximityprompt(item) 
+                end
+            end
         end
     end
-end
+end)
 
+frame.AutoStealBtn.MouseButton1Click:Connect(function()
+    autoStealActive = not autoStealActive
+    frame.AutoStealBtn.BackgroundColor3 = autoStealActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+end)
 
+-- 3. ESP (Wallhack Highlights)
+frame.EspBtn.MouseButton1Click:Connect(function()
+    espActive = not espActive
+    frame.EspBtn.BackgroundColor3 = espActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            if espActive then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "ESPHighlight"
+                highlight.Parent = p.Character
+            else
+                if p.Character:FindFirstChild("ESPHighlight") then
+                    p.Character.ESPHighlight:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+-- 4. OPEN/CLOSE MENU (Press 'K')
+UIS.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.K then
+        frame.Visible = not frame.Visible
+    end
+end)
