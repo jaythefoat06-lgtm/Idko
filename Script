@@ -1,100 +1,103 @@
--- [[ PEPSI-STYLE EXECUTOR MENU + AUTO-STEAL ]] --
+-- [[ PEPSI-STYLE MENU: SAFE AUTO-STEAL ]] --
 local UserInputService = game:GetService("UserInputService")
-local ProximityService = game:GetService("ProximityPromptService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
+-- UI SETUP
 local SG = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local Frame = Instance.new("Frame", SG)
-local UIList = Instance.new("UIListLayout", Frame)
 local Title = Instance.new("TextLabel", Frame)
+local UIList = Instance.new("UIListLayout", Frame)
 
--- Frame Styling
-Frame.Size = UDim2.new(0, 220, 0, 300)
-Frame.Position = UDim2.new(0.5, -110, 0.5, -150)
-Frame.BackgroundColor3 = Color3.fromRGB(25, 0, 45) -- Dark Purple
-Frame.BorderSizePixel = 0
+Frame.Size = UDim2.new(0, 220, 0, 320)
+Frame.Position = UDim2.new(0.1, 0, 0.4, 0) -- Positioned to the side like the video
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+Frame.BackgroundTransparency = 0.2
 Frame.Active = true
 Frame.Draggable = true
 
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Text = "AUTO-STEAL HUB"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundColor3 = Color3.fromRGB(40, 0, 70)
+local Corner = Instance.new("UICorner", Frame)
+Corner.CornerRadius = UDim.new(0, 10)
+
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "PEPSI V2 | SAFE"
+Title.TextColor3 = Color3.fromRGB(180, 100, 255)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
 Title.Font = Enum.Font.GothamBold
 
-UIList.Padding = UDim.new(0, 8)
+UIList.Padding = UDim.new(0, 5)
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Toggle State Variables
+-- TOGGLE LOGIC
 local AutoStealActive = false
+local AutoStealRange = 20 -- Set to 20 studs for safety
 
--- Button Creator Function
-local function NewToggle(text, callback)
+-- FUNCTION: CREATE BUTTON
+local function AddToggle(name, callback)
     local btn = Instance.new("TextButton", Frame)
     btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(50, 0, 90)
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 70)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.GothamMedium
-    
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 220, 100) or Color3.fromRGB(50, 0, 90)
-        btn.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+        btn.BackgroundColor3 = active and Color3.fromRGB(120, 50, 255) or Color3.fromRGB(45, 45, 70)
         callback(active)
     end)
 end
 
---- [[ FEATURES ]] ---
-
--- 1. Auto-Steal Feature (Loops through proximity prompts)
+--- [[ THE AUTO-STEAL LOOP ]] ---
 task.spawn(function()
-    while task.wait(0.1) do -- Fast loop for checking nearby items
-        if AutoStealActive then
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("ProximityPrompt") then
-                    -- This triggers the prompt instantly
-                    fireproximityprompt(v)
+    while task.wait(0.2) do -- Checks 5 times per second
+        if AutoStealActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local myPos = LocalPlayer.Character.HumanoidRootPart.Position
+            
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") then
+                    -- CALCULATION: Distance between you and the item
+                    local itemPos = obj.Parent:IsA("BasePart") and obj.Parent.Position or obj.Parent:FindFirstChildWhichIsA("BasePart") and obj.Parent:FindFirstChildWhichIsA("BasePart").Position
+                    
+                    if itemPos then
+                        local distance = (myPos - itemPos).Magnitude
+                        
+                        -- Only fire if you are within the safe range
+                        if distance <= AutoStealRange then
+                            fireproximityprompt(obj)
+                        end
+                    end
                 end
             end
         end
     end
 end)
 
-NewToggle("Auto-Steal (Nearby)", function(state)
+--- [[ ADDING THE BUTTONS ]] ---
+
+AddToggle("Auto-Steal (Safe)", function(state)
     AutoStealActive = state
 end)
 
--- 2. Speed Boost
-NewToggle("Speed Boost", function(state)
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = state and 85 or 16
-    end
+AddToggle("Speed (80)", function(state)
+    local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+    if hum then hum.WalkSpeed = state and 80 or 16 end
 end)
 
--- 3. ESP (Player Vision)
-NewToggle("Player ESP", function(state)
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            if state then
-                local h = Instance.new("Highlight", p.Character)
-                h.Name = "EspPart"
-                h.FillColor = Color3.fromRGB(180, 0, 255)
-            else
-                if p.Character:FindFirstChild("EspPart") then
-                    p.Character.EspPart:Destroy()
-                end
-            end
+AddToggle("Infinite Jump", function(state)
+    _G.InfJump = state
+    UserInputService.JumpRequest:Connect(function()
+        if _G.InfJump then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
         end
-    end
+    end)
 end)
 
--- Close Menu Key: RightShift
+-- Toggle Menu Visibility (Right Control)
 UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.RightShift then
+    if input.KeyCode == Enum.KeyCode.RightControl then
         SG.Enabled = not SG.Enabled
     end
 end)
