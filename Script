@@ -1,67 +1,100 @@
-local UIS = game:GetService("UserInputService")
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local frame = script.Parent.Frame -- Change to your Frame name
+-- [[ PEPSI-STYLE EXECUTOR MENU + AUTO-STEAL ]] --
+local UserInputService = game:GetService("UserInputService")
+local ProximityService = game:GetService("ProximityPromptService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- State Variables
-local speedActive = false
-local autoStealActive = false
-local espActive = false
+local SG = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local Frame = Instance.new("Frame", SG)
+local UIList = Instance.new("UIListLayout", Frame)
+local Title = Instance.new("TextLabel", Frame)
 
--- 1. SPEED BOOST TOGGLE
-frame.SpeedBtn.MouseButton1Click:Connect(function()
-    speedActive = not speedActive
-    if speedActive then
-        character.Humanoid.WalkSpeed = 100
-        frame.SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    else
-        character.Humanoid.WalkSpeed = 16
-        frame.SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    end
-end)
+-- Frame Styling
+Frame.Size = UDim2.new(0, 220, 0, 300)
+Frame.Position = UDim2.new(0.5, -110, 0.5, -150)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 0, 45) -- Dark Purple
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
 
--- 2. AUTO-STEAL (Check for nearby items)
-task.spawn(function()
-    while task.wait(0.5) do
-        if autoStealActive then
-            for _, item in pairs(workspace:GetDescendants()) do
-                if item:IsA("ProximityPrompt") then
-                    -- Simulates pressing 'E'
-                    fireproximityprompt(item) 
-                end
-            end
-        end
-    end
-end)
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.Text = "AUTO-STEAL HUB"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundColor3 = Color3.fromRGB(40, 0, 70)
+Title.Font = Enum.Font.GothamBold
 
-frame.AutoStealBtn.MouseButton1Click:Connect(function()
-    autoStealActive = not autoStealActive
-    frame.AutoStealBtn.BackgroundColor3 = autoStealActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-end)
+UIList.Padding = UDim.new(0, 8)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- 3. ESP (Wallhack Highlights)
-frame.EspBtn.MouseButton1Click:Connect(function()
-    espActive = not espActive
-    frame.EspBtn.BackgroundColor3 = espActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+-- Toggle State Variables
+local AutoStealActive = false
+
+-- Button Creator Function
+local function NewToggle(text, callback)
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(50, 0, 90)
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Font = Enum.Font.GothamMedium
     
-    for _, p in pairs(game.Players:GetPlayers()) do
-        if p ~= player and p.Character then
-            if espActive then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "ESPHighlight"
-                highlight.Parent = p.Character
-            else
-                if p.Character:FindFirstChild("ESPHighlight") then
-                    p.Character.ESPHighlight:Destroy()
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 220, 100) or Color3.fromRGB(50, 0, 90)
+        btn.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+        callback(active)
+    end)
+end
+
+--- [[ FEATURES ]] ---
+
+-- 1. Auto-Steal Feature (Loops through proximity prompts)
+task.spawn(function()
+    while task.wait(0.1) do -- Fast loop for checking nearby items
+        if AutoStealActive then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then
+                    -- This triggers the prompt instantly
+                    fireproximityprompt(v)
                 end
             end
         end
     end
 end)
 
--- 4. OPEN/CLOSE MENU (Press 'K')
-UIS.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.K then
-        frame.Visible = not frame.Visible
+NewToggle("Auto-Steal (Nearby)", function(state)
+    AutoStealActive = state
+end)
+
+-- 2. Speed Boost
+NewToggle("Speed Boost", function(state)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = state and 85 or 16
+    end
+end)
+
+-- 3. ESP (Player Vision)
+NewToggle("Player ESP", function(state)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if state then
+                local h = Instance.new("Highlight", p.Character)
+                h.Name = "EspPart"
+                h.FillColor = Color3.fromRGB(180, 0, 255)
+            else
+                if p.Character:FindFirstChild("EspPart") then
+                    p.Character.EspPart:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+-- Close Menu Key: RightShift
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        SG.Enabled = not SG.Enabled
     end
 end)
