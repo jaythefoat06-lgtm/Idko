@@ -1,5 +1,3 @@
-
-
 task.wait(0.1)
 -- ============================================================
 -- Jayy DUELS - BLUE EDITION + FAST ESP
@@ -36,7 +34,7 @@ if not getgenv then
     getgenv = function() return _G end
 end
 
-local ConfigFileName = "22s_DUELS_Config.json"
+local ConfigFileName = "Jayy_DUELS_Config.json"
 
 local Enabled = {
     SpeedBoost = false,
@@ -558,7 +556,7 @@ end
 -- Small precise markers at exact positions
 -- ============================================
 local coordESPFolder = Instance.new("Folder", workspace)
-coordESPFolder.Name = "22s_CoordESP"
+coordESPFolder.Name = "Jayy_CoordESP"
 
 local function createCoordMarker(position, labelText, color)
     -- Small dot at exact position
@@ -1131,7 +1129,7 @@ local C = {
 }
 
 local sg = Instance.new("ScreenGui")
-sg.Name = "22S_BLUE"
+sg.Name = "Jayy_BLUE"
 sg.ResetOnSpawn = false
 sg.Parent = Player.PlayerGui
 
@@ -1321,7 +1319,7 @@ local titleLabel = Instance.new("TextLabel", header)
 titleLabel.Size = UDim2.new(1, 0, 0, 32 * guiScale)
 titleLabel.Position = UDim2.new(0, 0, 0, 10 * guiScale)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "22S DUELS"
+titleLabel.Text = "Jayy DUELS"
 titleLabel.TextColor3 = C.text
 titleLabel.Font = Enum.Font.GothamBlack
 titleLabel.TextSize = 28 * guiScale
