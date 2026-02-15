@@ -259,13 +259,13 @@ local function stopSpinBot()
 end
 
 -- ================================================================
--- COMPLETELY FIXED INFINITE JUMP - NO RESETS
+-- PERFECT INFINITE JUMP - GOOD HEIGHT, NO RESETS
 -- ================================================================
 local infiniteJumpConnection = nil
 local lastJumpTime = 0
-local JUMP_COOLDOWN = 0.35 -- Increased cooldown to prevent physics issues
+local JUMP_COOLDOWN = 0.2 -- Good balance between responsiveness and safety
 local jumpCount = 0
-local maxJumpsBeforeReset = 15 -- Safety limit
+local maxJumpsBeforeReset = 30 -- Higher limit for longer air time
 
 local function startInfiniteJump()
     if infiniteJumpConnection then return end
@@ -283,39 +283,70 @@ local function startInfiniteJump()
         if hum and hrp and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
             local currentTime = tick()
             
-            -- Cooldown to prevent spam
+            -- Cooldown to prevent spam (but responsive enough)
             if currentTime - lastJumpTime < JUMP_COOLDOWN then return end
             lastJumpTime = currentTime
             
             -- Increment jump counter
             jumpCount = jumpCount + 1
             
-            -- Safety: if we've jumped too many times, force a small delay
+            -- Safety: if we've jumped too many times, force a small delay (prevents any possible resets)
             if jumpCount > maxJumpsBeforeReset then
-                task.wait(0.5)
+                task.wait(0.3)
                 jumpCount = 0
                 return
             end
             
-            -- Check if we're in air (not on ground)
+            -- GOOD JUMP HEIGHT - 50 is standard jump power
+            -- Only apply when in air OR on ground (allows both)
             if hum.FloorMaterial == Enum.Material.Air then
-                -- Gentle jump to avoid physics issues
-                hrp.Velocity = Vector3.new(hrp.Velocity.X, 28, hrp.Velocity.Z) -- Reduced jump power
-                
-                -- Don't change humanoid state - this prevents resets
-                -- Just modify velocity directly
+                -- In air: give a solid boost
+                hrp.Velocity = Vector3.new(hrp.Velocity.X, 52, hrp.Velocity.Z)
+            else
+                -- On ground: do normal jump through humanoid (safer)
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+            
+            -- Visual feedback - small effect to show it's working
+            pcall(function()
+                -- Optional: tiny particle for visual feedback (comment out if unwanted)
+                -- local part = Instance.new("Part")
+                -- part.Parent = workspace
+                -- part.Anchored = true
+                -- part.CanCollide = false
+                -- part.Size = Vector3.new(0.5, 0.5, 0.5)
+                -- part.Position = hrp.Position + Vector3.new(0, 3, 0)
+                -- part.BrickColor = BrickColor.new("Bright blue")
+                -- part.Material = Enum.Material.Neon
+                -- game:GetService("Debris"):AddItem(part, 0.2)
+            end)
+        end
+    end)
+    
+    -- Add a heartbeat check for holding space (optional - gives a little boost when holding)
+    Connections.infiniteJumpHeartbeat = RunService.Heartbeat:Connect(function()
+        if not Enabled.InfiniteJump then return end
+        
+        if jumpPressed then
+            local c = Player.Character
+            if c then
+                local hum = c:FindFirstChildOfClass("Humanoid")
+                local hrp = c:FindFirstChild("HumanoidRootPart")
+                if hum and hrp and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+                    -- Very gentle boost when holding space, only if falling
+                    if hrp.Velocity.Y < -10 then
+                        hrp.Velocity = Vector3.new(hrp.Velocity.X, 15, hrp.Velocity.Z)
+                    end
+                end
             end
         end
     end)
     
-    -- Remove the heartbeat connection entirely - it was causing issues
-    -- Just use the jump request which is more reliable
-    
-    -- Add a cleanup timer to reset jump counter periodically
+    -- Reset jump counter periodically
     task.spawn(function()
         while Enabled.InfiniteJump do
-            task.wait(2)
-            jumpCount = 0 -- Reset counter every 2 seconds
+            task.wait(3)
+            jumpCount = 0
         end
     end)
 end
@@ -325,6 +356,10 @@ local function stopInfiniteJump()
         infiniteJumpConnection:Disconnect()
         infiniteJumpConnection = nil
     end
+    if Connections.infiniteJumpHeartbeat then
+        Connections.infiniteJumpHeartbeat:Disconnect()
+        Connections.infiniteJumpHeartbeat = nil
+    end
     jumpCount = 0
 end
 
@@ -332,6 +367,8 @@ end
 
 local AutoWalkEnabled = false
 local AutoRightEnabled = false
+local jumpPressed = false
+local spaceHeld = false
 
 RunService.Heartbeat:Connect(function()
     if Enabled.SpinBot and spinBAV then
@@ -422,7 +459,6 @@ local galaxyAttachment = nil
 local galaxyEnabled = false
 local hopsEnabled = false
 local lastHopTime = 0
-local spaceHeld = false
 local originalJumpPower = 50
 
 -- Capture original jump power safely when character is ready
