@@ -584,7 +584,7 @@ local function createCoordMarker(position, labelText, color)
     text.BackgroundTransparency = 1
     text.Text = labelText
     text.TextColor3 = color
-    text.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    text.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
     text.TextStrokeTransparency = 0
     text.Font = Enum.Font.GothamBold
     text.TextSize = 12
@@ -1109,23 +1109,23 @@ local function disableGalaxySkyBright()
 end
 
 -- ============================================
--- GUI - CLEAN NO BOXES - MORE BLACK
+-- GUI - CLEAN NO BOXES - WHITE BACKGROUND
 -- ============================================
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local guiScale = isMobile and 0.4 or 1
 
 local C = {
-    bg = Color3.fromRGB(2, 2, 4),
-    purple = Color3.fromRGB(60, 130, 255),
-    purpleLight = Color3.fromRGB(100, 170, 255),
-    purpleDark = Color3.fromRGB(30, 80, 200),
-    purpleGlow = Color3.fromRGB(80, 150, 255),
-    accent = Color3.fromRGB(60, 130, 255),
-    text = Color3.fromRGB(255, 255, 255),
-    textDim = Color3.fromRGB(100, 170, 255),
-    success = Color3.fromRGB(34, 197, 94),
-    danger = Color3.fromRGB(239, 68, 68),
-    border = Color3.fromRGB(30, 60, 120)
+    bg = Color3.fromRGB(255, 255, 255),        -- White background
+    purple = Color3.fromRGB(60, 130, 255),      -- Blue accent
+    purpleLight = Color3.fromRGB(80, 150, 255), -- Lighter blue
+    purpleDark = Color3.fromRGB(40, 100, 220),  -- Darker blue
+    purpleGlow = Color3.fromRGB(100, 170, 255), -- Soft blue
+    accent = Color3.fromRGB(60, 130, 255),      -- Blue accent
+    text = Color3.fromRGB(0, 0, 0),             -- Black text
+    textDim = Color3.fromRGB(60, 60, 60),       -- Dark gray for dim text
+    success = Color3.fromRGB(34, 197, 94),      -- Green
+    danger = Color3.fromRGB(239, 68, 68),       -- Red
+    border = Color3.fromRGB(200, 200, 255)      -- Light blue border
 }
 
 local sg = Instance.new("ScreenGui")
@@ -1148,19 +1148,20 @@ end
 local progressBar = Instance.new("Frame", sg)
 progressBar.Size = UDim2.new(0, 420 * guiScale, 0, 56 * guiScale)
 progressBar.Position = UDim2.new(0.5, -210 * guiScale, 1, -168 * guiScale)
-progressBar.BackgroundColor3 = Color3.fromRGB(2, 2, 4)
+progressBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- White
 progressBar.BorderSizePixel = 0
 progressBar.ClipsDescendants = true
 Instance.new("UICorner", progressBar).CornerRadius = UDim.new(0, 14 * guiScale)
 
 local pStroke = Instance.new("UIStroke", progressBar)
 pStroke.Thickness = 2
+pStroke.Color = C.accent
 local pGrad = Instance.new("UIGradient", pStroke)
 pGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 170, 255)),
-    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 130, 255)),
+    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(150, 150, 255)),
     ColorSequenceKeypoint.new(0.6, Color3.fromRGB(60, 130, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 255))
 })
 
 task.spawn(function()
@@ -1176,7 +1177,7 @@ for i = 1, 12 do
     local ball = Instance.new("Frame", progressBar)
     ball.Size = UDim2.new(0, math.random(2, 3), 0, math.random(2, 3))
     ball.Position = UDim2.new(math.random(3, 97) / 100, 0, math.random(15, 85) / 100, 0)
-    ball.BackgroundColor3 = Color3.fromRGB(100, 170, 255)
+    ball.BackgroundColor3 = C.accent
     ball.BackgroundTransparency = math.random(20, 50) / 100
     ball.BorderSizePixel = 0
     ball.ZIndex = 1
@@ -1212,7 +1213,7 @@ ProgressPercentLabel = Instance.new("TextLabel", progressBar)
 ProgressPercentLabel.Size = UDim2.new(1, 0, 0.5, 0)
 ProgressPercentLabel.BackgroundTransparency = 1
 ProgressPercentLabel.Text = ""
-ProgressPercentLabel.TextColor3 = C.purpleLight
+ProgressPercentLabel.TextColor3 = C.purple
 ProgressPercentLabel.Font = Enum.Font.GothamBlack
 ProgressPercentLabel.TextSize = 18 * guiScale
 ProgressPercentLabel.TextXAlignment = Enum.TextXAlignment.Center
@@ -1221,9 +1222,9 @@ ProgressPercentLabel.ZIndex = 3
 RadiusInput = Instance.new("TextBox", progressBar)
 RadiusInput.Size = UDim2.new(0, 40 * guiScale, 0, 22 * guiScale)
 RadiusInput.Position = UDim2.new(1, -50 * guiScale, 0, 2 * guiScale)
-RadiusInput.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
+RadiusInput.BackgroundColor3 = Color3.fromRGB(240, 240, 255)  -- Very light blue
 RadiusInput.Text = tostring(Values.STEAL_RADIUS)
-RadiusInput.TextColor3 = C.purpleLight
+RadiusInput.TextColor3 = C.purpleDark
 RadiusInput.Font = Enum.Font.GothamBold
 RadiusInput.TextSize = 12 * guiScale
 RadiusInput.ZIndex = 3
@@ -1240,7 +1241,7 @@ end)
 local pTrack = Instance.new("Frame", progressBar)
 pTrack.Size = UDim2.new(0.94, 0, 0, 8 * guiScale)
 pTrack.Position = UDim2.new(0.03, 0, 1, -15 * guiScale)
-pTrack.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
+pTrack.BackgroundColor3 = Color3.fromRGB(220, 220, 240)  -- Light gray-blue
 pTrack.ZIndex = 2
 Instance.new("UICorner", pTrack).CornerRadius = UDim.new(1, 0)
 
@@ -1255,7 +1256,7 @@ local main = Instance.new("Frame", sg)
 main.Name = "Main"
 main.Size = UDim2.new(0, 560 * guiScale, 0, 740 * guiScale)
 main.Position = isMobile and UDim2.new(0.5, -280 * guiScale, 0.5, -370 * guiScale) or UDim2.new(1, -580, 0, 20)
-main.BackgroundColor3 = Color3.fromRGB(2, 2, 4)
+main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- White
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
@@ -1264,13 +1265,14 @@ Instance.new("UICorner", main).CornerRadius = UDim.new(0, 18 * guiScale)
 
 local mainStroke = Instance.new("UIStroke", main)
 mainStroke.Thickness = 2
+mainStroke.Color = C.accent
 local strokeGrad = Instance.new("UIGradient", mainStroke)
 strokeGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 170, 255)),
-    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 130, 255)),
+    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(200, 200, 255)),
     ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 130, 255)),
-    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 0)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 170, 255))
+    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(200, 200, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 130, 255))
 })
 
 task.spawn(function()
@@ -1286,7 +1288,7 @@ for i = 1, 60 do
     local ball = Instance.new("Frame", main)
     ball.Size = UDim2.new(0, math.random(2, 4), 0, math.random(2, 4))
     ball.Position = UDim2.new(math.random(2, 98) / 100, 0, math.random(2, 98) / 100, 0)
-    ball.BackgroundColor3 = Color3.fromRGB(100, 170, 255)
+    ball.BackgroundColor3 = C.accent
     ball.BackgroundTransparency = math.random(10, 40) / 100
     ball.BorderSizePixel = 0
     ball.ZIndex = 2
@@ -1331,7 +1333,7 @@ subtitleLabel.Size = UDim2.new(1, 0, 0, 24 * guiScale)
 subtitleLabel.Position = UDim2.new(0, 0, 0, 40 * guiScale)
 subtitleLabel.BackgroundTransparency = 1
 subtitleLabel.Text = "discord.gg/22s"
-subtitleLabel.TextColor3 = C.purpleLight
+subtitleLabel.TextColor3 = C.purple
 subtitleLabel.Font = Enum.Font.GothamBold
 subtitleLabel.TextSize = 16 * guiScale
 subtitleLabel.TextXAlignment = Enum.TextXAlignment.Center
@@ -1411,7 +1413,7 @@ local function createToggleWithKey(parent, yPos, labelText, keybindKey, enabledK
     local toggleBg = Instance.new("Frame", row)
     toggleBg.Size = UDim2.new(0, 50 * guiScale, 0, 26 * guiScale)
     toggleBg.Position = UDim2.new(1, -58 * guiScale, 0.5, -13 * guiScale)
-    toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(25, 20, 35)
+    toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(220, 220, 240)  -- Light gray when off
     toggleBg.ZIndex = 4
     Instance.new("UICorner", toggleBg).CornerRadius = UDim.new(1, 0)
     
@@ -1433,7 +1435,7 @@ local function createToggleWithKey(parent, yPos, labelText, keybindKey, enabledK
     
     local function setVisual(state, skipCallback)
         isOn = state
-        TweenService:Create(toggleBg, TweenInfo.new(0.3), {BackgroundColor3 = isOn and onColor or Color3.fromRGB(25, 20, 35)}):Play()
+        TweenService:Create(toggleBg, TweenInfo.new(0.3), {BackgroundColor3 = isOn and onColor or Color3.fromRGB(220, 220, 240)}):Play()
         TweenService:Create(toggleCircle, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Position = isOn and UDim2.new(1, -23 * guiScale, 0.5, -10 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -10 * guiScale)}):Play()
         if not skipCallback then
             callback(isOn)
@@ -1484,7 +1486,7 @@ local function createToggle(parent, yPos, labelText, enabledKey, callback, speci
     local toggleBg = Instance.new("Frame", row)
     toggleBg.Size = UDim2.new(0, 50 * guiScale, 0, 26 * guiScale)
     toggleBg.Position = UDim2.new(1, -58 * guiScale, 0.5, -13 * guiScale)
-    toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(25, 20, 35)
+    toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(220, 220, 240)  -- Light gray when off
     toggleBg.ZIndex = 4
     Instance.new("UICorner", toggleBg).CornerRadius = UDim.new(1, 0)
     
@@ -1505,7 +1507,7 @@ local function createToggle(parent, yPos, labelText, enabledKey, callback, speci
     
     local function setVisual(state, skipCallback)
         isOn = state
-        TweenService:Create(toggleBg, TweenInfo.new(0.3), {BackgroundColor3 = isOn and onColor or Color3.fromRGB(25, 20, 35)}):Play()
+        TweenService:Create(toggleBg, TweenInfo.new(0.3), {BackgroundColor3 = isOn and onColor or Color3.fromRGB(220, 220, 240)}):Play()
         TweenService:Create(toggleCircle, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Position = isOn and UDim2.new(1, -23 * guiScale, 0.5, -10 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -10 * guiScale)}):Play()
         if not skipCallback then
             callback(isOn)
@@ -1549,9 +1551,9 @@ local function createSlider(parent, yPos, labelText, minVal, maxVal, valueKey, c
     local valueInput = Instance.new("TextBox", container)
     valueInput.Size = UDim2.new(0, 50 * guiScale, 0, 22 * guiScale)
     valueInput.Position = UDim2.new(1, -58 * guiScale, 0, 2 * guiScale)
-    valueInput.BackgroundColor3 = Color3.fromRGB(20, 15, 30)
+    valueInput.BackgroundColor3 = Color3.fromRGB(240, 240, 255)  -- Very light blue
     valueInput.Text = tostring(defaultVal)
-    valueInput.TextColor3 = C.purpleLight
+    valueInput.TextColor3 = C.purpleDark
     valueInput.Font = Enum.Font.GothamBold
     valueInput.TextSize = 12 * guiScale
     valueInput.ClearTextOnFocus = false
@@ -1561,7 +1563,7 @@ local function createSlider(parent, yPos, labelText, minVal, maxVal, valueKey, c
     local sliderBg = Instance.new("Frame", container)
     sliderBg.Size = UDim2.new(0.92, 0, 0, 10 * guiScale)
     sliderBg.Position = UDim2.new(0.04, 0, 0, 32 * guiScale)
-    sliderBg.BackgroundColor3 = Color3.fromRGB(20, 15, 30)
+    sliderBg.BackgroundColor3 = Color3.fromRGB(220, 220, 240)  -- Light gray-blue
     sliderBg.ZIndex = 4
     Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1, 0)
     
