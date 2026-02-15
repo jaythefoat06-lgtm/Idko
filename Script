@@ -1324,6 +1324,43 @@ main.Draggable = true
 main.ClipsDescendants = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 18 * guiScale)
 
+-- Mobile close button (large and easy to tap)
+local mobileCloseBtn = Instance.new("TextButton", main)
+mobileCloseBtn.Size = UDim2.new(0, 60 * guiScale, 0, 60 * guiScale)
+mobileCloseBtn.Position = UDim2.new(1, -70 * guiScale, 0, 10 * guiScale)
+mobileCloseBtn.BackgroundColor3 = C.danger
+mobileCloseBtn.Text = "✕"
+mobileCloseBtn.TextColor3 = Color3.new(1, 1, 1)
+mobileCloseBtn.Font = Enum.Font.GothamBold
+mobileCloseBtn.TextSize = 30 * guiScale
+mobileCloseBtn.ZIndex = 10
+mobileCloseBtn.Visible = isMobile -- Only visible on mobile
+Instance.new("UICorner", mobileCloseBtn).CornerRadius = UDim.new(1, 0)
+
+mobileCloseBtn.MouseButton1Click:Connect(function() 
+    sg:Destroy() 
+end)
+
+-- Mobile minimize button (to hide/show menu)
+local mobileMinimizeBtn = Instance.new("TextButton", main)
+mobileMinimizeBtn.Size = UDim2.new(0, 60 * guiScale, 0, 60 * guiScale)
+mobileMinimizeBtn.Position = UDim2.new(1, -140 * guiScale, 0, 10 * guiScale)
+mobileMinimizeBtn.BackgroundColor3 = C.purple
+mobileMinimizeBtn.Text = "−"
+mobileMinimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+mobileMinimizeBtn.Font = Enum.Font.GothamBold
+mobileMinimizeBtn.TextSize = 30 * guiScale
+mobileMinimizeBtn.ZIndex = 10
+mobileMinimizeBtn.Visible = isMobile -- Only visible on mobile
+Instance.new("UICorner", mobileMinimizeBtn).CornerRadius = UDim.new(1, 0)
+
+local guiVisible = true
+mobileMinimizeBtn.MouseButton1Click:Connect(function()
+    guiVisible = not guiVisible
+    main.Visible = guiVisible
+    mobileMinimizeBtn.Text = guiVisible and "−" or "+"
+end)
+
 local mainStroke = Instance.new("UIStroke", main)
 mainStroke.Thickness = 2
 mainStroke.Color = C.accent
@@ -1413,6 +1450,11 @@ closeBtn.ZIndex = 5
 closeBtn.MouseButton1Click:Connect(function() sg:Destroy() end)
 closeBtn.MouseEnter:Connect(function() closeBtn.TextColor3 = C.danger end)
 closeBtn.MouseLeave:Connect(function() closeBtn.TextColor3 = C.textDim end)
+
+-- Make close button invisible on mobile (use the big buttons instead)
+if isMobile then
+    closeBtn.Visible = false
+end
 
 local leftSide = Instance.new("Frame", main)
 leftSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale) -- Increased height for new toggle
@@ -1777,7 +1819,7 @@ createToggle(rightSide, 336, "Optimizer + XRay", "Optimizer", function(s)
     if s then enableOptimizer() else disableOptimizer() end
 end)
 
--- New Infinite Jump Toggle
+-- New Infinite Jump Toggle (on the right side)
 createToggleWithKey(rightSide, 388, "Infinite Jump", "INFINITEJUMP", "InfiniteJump", function(s)
     Enabled.InfiniteJump = s
     if s then 
@@ -1837,8 +1879,6 @@ infoLabel.TextColor3 = C.textDim
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9 * guiScale
 infoLabel.ZIndex = 3
-
-local guiVisible = true
 
 -- Apply loaded config (delayed to prevent character reset)
 task.spawn(function()
@@ -1914,6 +1954,9 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     if input.KeyCode == Enum.KeyCode.F6 then
         guiVisible = not guiVisible
         main.Visible = guiVisible
+        if isMobile and mobileMinimizeBtn then
+            mobileMinimizeBtn.Text = guiVisible and "−" or "+"
+        end
         return
     end
     
@@ -1921,6 +1964,9 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     if input.KeyCode == Enum.KeyCode.U then
         guiVisible = not guiVisible
         main.Visible = guiVisible
+        if isMobile and mobileMinimizeBtn then
+            mobileMinimizeBtn.Text = guiVisible and "−" or "+"
+        end
         return
     end
     
