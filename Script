@@ -259,10 +259,11 @@ local function stopSpinBot()
 end
 
 -- ================================================================
--- INFINITE JUMP
+-- FIXED INFINITE JUMP - NO RESETS
 -- ================================================================
 local infiniteJumpConnection = nil
-local jumpPressed = false
+local lastJumpTime = 0
+local JUMP_COOLDOWN = 0.2 -- Prevent too many jumps at once
 
 local function startInfiniteJump()
     if infiniteJumpConnection then return end
@@ -276,27 +277,46 @@ local function startInfiniteJump()
         local hum = c:FindFirstChildOfClass("Humanoid")
         local hrp = c:FindFirstChild("HumanoidRootPart")
         
-        if hum and hrp and hum:GetState() ~= Enum.HumanoidStateType.Dead then
-            -- Check if we're on the ground or in air (allows infinite jumps)
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-            hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z) -- Jump power
+        -- Check if character exists and is alive
+        if hum and hrp and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+            local currentTime = tick()
+            
+            -- Cooldown to prevent spam
+            if currentTime - lastJumpTime < JUMP_COOLDOWN then return end
+            lastJumpTime = currentTime
+            
+            -- Check if we're in air (not on ground)
+            if hum.FloorMaterial == Enum.Material.Air then
+                -- Gentle jump to avoid physics issues
+                hrp.Velocity = Vector3.new(hrp.Velocity.X, 35, hrp.Velocity.Z)
+                
+                -- Play jump animation if available
+                pcall(function()
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end)
+            end
         end
     end)
     
-    -- Also connect to heartbeat for more responsive jumping
+    -- Optional: Add a heartbeat check for holding space (less aggressive)
     Connections.infiniteJumpHeartbeat = RunService.Heartbeat:Connect(function()
         if not Enabled.InfiniteJump then return end
         
-        -- This allows for even more responsive jumping by checking if space is held
         if jumpPressed then
             local c = Player.Character
             if c then
                 local hum = c:FindFirstChildOfClass("Humanoid")
                 local hrp = c:FindFirstChild("HumanoidRootPart")
-                if hum and hrp and hum:GetState() ~= Enum.HumanoidStateType.Dead then
-                    -- Small boost to keep you in the air when holding space
-                    if hrp.Velocity.Y < 0 then
-                        hrp.Velocity = Vector3.new(hrp.Velocity.X, 5, hrp.Velocity.Z)
+                if hum and hrp and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+                    local currentTime = tick()
+                    
+                    -- Only apply small boost every 0.3 seconds
+                    if currentTime - lastJumpTime < 0.3 then return end
+                    
+                    -- Only apply if falling
+                    if hrp.Velocity.Y < -5 then
+                        hrp.Velocity = Vector3.new(hrp.Velocity.X, 15, hrp.Velocity.Z)
+                        lastJumpTime = currentTime
                     end
                 end
             end
@@ -1194,6 +1214,40 @@ sg.Name = "Jayy_BLUE"
 sg.ResetOnSpawn = false
 sg.Parent = Player.PlayerGui
 
+-- ============================================
+-- SIDE CIRCLE MENU BUTTON - Always visible
+-- ============================================
+local menuButton = Instance.new("TextButton", sg)
+menuButton.Size = UDim2.new(0, 60 * guiScale, 0, 60 * guiScale)
+menuButton.Position = UDim2.new(0, 10 * guiScale, 0.5, -30 * guiScale) -- Left side, middle of screen
+menuButton.BackgroundColor3 = C.purple
+menuButton.Text = "☰" -- Hamburger menu icon
+menuButton.TextColor3 = Color3.new(1, 1, 1)
+menuButton.Font = Enum.Font.GothamBold
+menuButton.TextSize = 30 * guiScale
+menuButton.ZIndex = 100 -- Always on top
+menuButton.Draggable = true -- Allow users to move it
+menuButton.Active = true
+Instance.new("UICorner", menuButton).CornerRadius = UDim.new(1, 0) -- Perfect circle
+
+-- Add a subtle glow effect
+local menuStroke = Instance.new("UIStroke", menuButton)
+menuStroke.Thickness = 2
+menuStroke.Color = Color3.fromRGB(255, 255, 255)
+menuStroke.Transparency = 0.3
+
+-- Add pulsing animation to draw attention
+task.spawn(function()
+    local pulseDir = 1
+    while menuButton and menuButton.Parent do
+        local currentSize = menuButton.Size.X.Scale * 60
+        local newSize = 60 + (math.sin(tick() * 3) * 5)
+        menuButton.Size = UDim2.new(0, newSize * guiScale, 0, newSize * guiScale)
+        menuButton.Position = UDim2.new(0, 10 * guiScale, 0.5, -(newSize * guiScale / 2))
+        task.wait(0.05)
+    end
+end)
+
 local function playSound(id, vol, spd)
     pcall(function()
         local s = Instance.new("Sound", SoundService)
@@ -1315,13 +1369,14 @@ Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
 -- Main Window
 local main = Instance.new("Frame", sg)
 main.Name = "Main"
-main.Size = UDim2.new(0, 560 * guiScale, 0, 800 * guiScale) -- Increased height for new toggle
-main.Position = isMobile and UDim2.new(0.5, -280 * guiScale, 0.5, -400 * guiScale) or UDim2.new(1, -580, 0, 20)
+main.Size = UDim2.new(0, 560 * guiScale, 0, 800 * guiScale)
+main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -400 * guiScale)
 main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- White
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
 main.ClipsDescendants = true
+main.Visible = true -- Start visible
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 18 * guiScale)
 
 -- Mobile close button (large and easy to tap)
@@ -1359,6 +1414,20 @@ mobileMinimizeBtn.MouseButton1Click:Connect(function()
     guiVisible = not guiVisible
     main.Visible = guiVisible
     mobileMinimizeBtn.Text = guiVisible and "−" or "+"
+end)
+
+-- Side menu button click handler
+menuButton.MouseButton1Click:Connect(function()
+    guiVisible = not guiVisible
+    main.Visible = guiVisible
+    if isMobile and mobileMinimizeBtn then
+        mobileMinimizeBtn.Text = guiVisible and "−" or "+"
+    end
+    -- Visual feedback
+    menuButton.BackgroundColor3 = guiVisible and C.purple or Color3.fromRGB(100, 200, 100)
+    task.delay(0.2, function()
+        menuButton.BackgroundColor3 = C.purple
+    end)
 end)
 
 local mainStroke = Instance.new("UIStroke", main)
@@ -1457,7 +1526,7 @@ if isMobile then
 end
 
 local leftSide = Instance.new("Frame", main)
-leftSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale) -- Increased height for new toggle
+leftSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale)
 leftSide.Position = UDim2.new(0.01, 0, 0, 75 * guiScale)
 leftSide.BackgroundTransparency = 1
 leftSide.BorderSizePixel = 0
@@ -1465,7 +1534,7 @@ leftSide.ClipsDescendants = true
 leftSide.ZIndex = 2
 
 local rightSide = Instance.new("Frame", main)
-rightSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale) -- Increased height for new toggle
+rightSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale)
 rightSide.Position = UDim2.new(0.51, 0, 0, 75 * guiScale)
 rightSide.BackgroundTransparency = 1
 rightSide.BorderSizePixel = 0
@@ -1846,7 +1915,7 @@ _G.setAutoRightVisual = VisualSetters.AutoRightEnabled
 -- Save Button
 local SaveBtn = Instance.new("TextButton", rightSide)
 SaveBtn.Size = UDim2.new(1, -10 * guiScale, 0, 50 * guiScale)
-SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 555 * guiScale) -- Adjusted position
+SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 555 * guiScale)
 SaveBtn.BackgroundColor3 = C.purple
 SaveBtn.Text = "SAVE CONFIG"
 SaveBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -1872,9 +1941,9 @@ end)
 
 local infoLabel = Instance.new("TextLabel", leftSide)
 infoLabel.Size = UDim2.new(1, 0, 0, 40 * guiScale)
-infoLabel.Position = UDim2.new(0, 0, 0, 660 * guiScale) -- Adjusted position
+infoLabel.Position = UDim2.new(0, 0, 0, 660 * guiScale)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump\nZ=AutoLeft | C=AutoRight | Q=Nuke | F6=Menu | U=GUI"
+infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
 infoLabel.TextColor3 = C.textDim
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9 * guiScale
@@ -1950,7 +2019,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         return
     end
     
-    -- F6 key to toggle menu (new open/close button)
+    -- F6 key to toggle menu
     if input.KeyCode == Enum.KeyCode.F6 then
         guiVisible = not guiVisible
         main.Visible = guiVisible
@@ -1960,7 +2029,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         return
     end
     
-    -- U key as alternative toggle (keeping original for compatibility)
+    -- U key as alternative toggle
     if input.KeyCode == Enum.KeyCode.U then
         guiVisible = not guiVisible
         main.Visible = guiVisible
