@@ -51,7 +51,8 @@ local Enabled = {
     GalaxySkyBright = false,
     AutoWalkEnabled = false,
     AutoRightEnabled = false,
-    ScriptUserESP = true
+    ScriptUserESP = true,
+    InfiniteJump = false -- New Infinite Jump toggle
 }
 
 local Values = {
@@ -73,7 +74,8 @@ local KEYBINDS = {
     BATAIMBOT = Enum.KeyCode.X,
     NUKE = Enum.KeyCode.Q,
     AUTOLEFT = Enum.KeyCode.Z,
-    AUTORIGHT = Enum.KeyCode.C
+    AUTORIGHT = Enum.KeyCode.C,
+    INFINITEJUMP = Enum.KeyCode.J -- Keybind for Infinite Jump
 }
 
 -- Load Config FIRST before anything else
@@ -98,6 +100,7 @@ pcall(function()
             if data.KEY_BATAIMBOT then KEYBINDS.BATAIMBOT = Enum.KeyCode[data.KEY_BATAIMBOT] end
             if data.KEY_AUTOLEFT then KEYBINDS.AUTOLEFT = Enum.KeyCode[data.KEY_AUTOLEFT] end
             if data.KEY_AUTORIGHT then KEYBINDS.AUTORIGHT = Enum.KeyCode[data.KEY_AUTORIGHT] end
+            if data.KEY_INFINITEJUMP then KEYBINDS.INFINITEJUMP = Enum.KeyCode[data.KEY_INFINITEJUMP] end
             configLoaded = true
         end
     end
@@ -118,6 +121,7 @@ local function SaveConfig()
     data.KEY_BATAIMBOT = KEYBINDS.BATAIMBOT.Name
     data.KEY_AUTOLEFT = KEYBINDS.AUTOLEFT.Name
     data.KEY_AUTORIGHT = KEYBINDS.AUTORIGHT.Name
+    data.KEY_INFINITEJUMP = KEYBINDS.INFINITEJUMP.Name
     
     local success = false
     if writefile then
@@ -255,7 +259,64 @@ local function stopSpinBot()
 end
 
 -- ================================================================
+-- INFINITE JUMP
 -- ================================================================
+local infiniteJumpConnection = nil
+local jumpPressed = false
+
+local function startInfiniteJump()
+    if infiniteJumpConnection then return end
+    
+    infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+        if not Enabled.InfiniteJump then return end
+        
+        local c = Player.Character
+        if not c then return end
+        
+        local hum = c:FindFirstChildOfClass("Humanoid")
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        
+        if hum and hrp and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+            -- Check if we're on the ground or in air (allows infinite jumps)
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z) -- Jump power
+        end
+    end)
+    
+    -- Also connect to heartbeat for more responsive jumping
+    Connections.infiniteJumpHeartbeat = RunService.Heartbeat:Connect(function()
+        if not Enabled.InfiniteJump then return end
+        
+        -- This allows for even more responsive jumping by checking if space is held
+        if jumpPressed then
+            local c = Player.Character
+            if c then
+                local hum = c:FindFirstChildOfClass("Humanoid")
+                local hrp = c:FindFirstChild("HumanoidRootPart")
+                if hum and hrp and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+                    -- Small boost to keep you in the air when holding space
+                    if hrp.Velocity.Y < 0 then
+                        hrp.Velocity = Vector3.new(hrp.Velocity.X, 5, hrp.Velocity.Z)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopInfiniteJump()
+    if infiniteJumpConnection then
+        infiniteJumpConnection:Disconnect()
+        infiniteJumpConnection = nil
+    end
+    if Connections.infiniteJumpHeartbeat then
+        Connections.infiniteJumpHeartbeat:Disconnect()
+        Connections.infiniteJumpHeartbeat = nil
+    end
+end
+
+-- ================================================================
+
 local AutoWalkEnabled = false
 local AutoRightEnabled = false
 
@@ -1254,8 +1315,8 @@ Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
 -- Main Window
 local main = Instance.new("Frame", sg)
 main.Name = "Main"
-main.Size = UDim2.new(0, 560 * guiScale, 0, 740 * guiScale)
-main.Position = isMobile and UDim2.new(0.5, -280 * guiScale, 0.5, -370 * guiScale) or UDim2.new(1, -580, 0, 20)
+main.Size = UDim2.new(0, 560 * guiScale, 0, 800 * guiScale) -- Increased height for new toggle
+main.Position = isMobile and UDim2.new(0.5, -280 * guiScale, 0.5, -400 * guiScale) or UDim2.new(1, -580, 0, 20)
 main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- White
 main.BorderSizePixel = 0
 main.Active = true
@@ -1354,7 +1415,7 @@ closeBtn.MouseEnter:Connect(function() closeBtn.TextColor3 = C.danger end)
 closeBtn.MouseLeave:Connect(function() closeBtn.TextColor3 = C.textDim end)
 
 local leftSide = Instance.new("Frame", main)
-leftSide.Size = UDim2.new(0.48, 0, 0, 650 * guiScale)
+leftSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale) -- Increased height for new toggle
 leftSide.Position = UDim2.new(0.01, 0, 0, 75 * guiScale)
 leftSide.BackgroundTransparency = 1
 leftSide.BorderSizePixel = 0
@@ -1362,7 +1423,7 @@ leftSide.ClipsDescendants = true
 leftSide.ZIndex = 2
 
 local rightSide = Instance.new("Frame", main)
-rightSide.Size = UDim2.new(0.48, 0, 0, 650 * guiScale)
+rightSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale) -- Increased height for new toggle
 rightSide.Position = UDim2.new(0.51, 0, 0, 75 * guiScale)
 rightSide.BackgroundTransparency = 1
 rightSide.BorderSizePixel = 0
@@ -1716,14 +1777,24 @@ createToggle(rightSide, 336, "Optimizer + XRay", "Optimizer", function(s)
     if s then enableOptimizer() else disableOptimizer() end
 end)
 
-createToggleWithKey(rightSide, 388, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
+-- New Infinite Jump Toggle
+createToggleWithKey(rightSide, 388, "Infinite Jump", "INFINITEJUMP", "InfiniteJump", function(s)
+    Enabled.InfiniteJump = s
+    if s then 
+        startInfiniteJump() 
+    else 
+        stopInfiniteJump() 
+    end
+end, Color3.fromRGB(100, 200, 255))
+
+createToggleWithKey(rightSide, 440, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
     AutoWalkEnabled = s
     Enabled.AutoWalkEnabled = s
     if s then startAutoWalk() else stopAutoWalk() end
 end, Color3.fromRGB(100, 150, 255))
 _G.setAutoLeftVisual = VisualSetters.AutoWalkEnabled
 
-createToggleWithKey(rightSide, 440, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
+createToggleWithKey(rightSide, 492, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
     AutoRightEnabled = s
     Enabled.AutoRightEnabled = s
     if s then startAutoRight() else stopAutoRight() end
@@ -1733,7 +1804,7 @@ _G.setAutoRightVisual = VisualSetters.AutoRightEnabled
 -- Save Button
 local SaveBtn = Instance.new("TextButton", rightSide)
 SaveBtn.Size = UDim2.new(1, -10 * guiScale, 0, 50 * guiScale)
-SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 503 * guiScale)
+SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 555 * guiScale) -- Adjusted position
 SaveBtn.BackgroundColor3 = C.purple
 SaveBtn.Text = "SAVE CONFIG"
 SaveBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -1759,9 +1830,9 @@ end)
 
 local infoLabel = Instance.new("TextLabel", leftSide)
 infoLabel.Size = UDim2.new(1, 0, 0, 40 * guiScale)
-infoLabel.Position = UDim2.new(0, 0, 0, 600 * guiScale)
+infoLabel.Position = UDim2.new(0, 0, 0, 660 * guiScale) -- Adjusted position
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot\nZ=AutoLeft | C=AutoRight | Q=Nuke | U=GUI"
+infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump\nZ=AutoLeft | C=AutoRight | Q=Nuke | F6=Menu | U=GUI"
 infoLabel.TextColor3 = C.textDim
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9 * guiScale
@@ -1804,6 +1875,7 @@ task.spawn(function()
     if Enabled.AutoSteal then startAutoSteal() end
     if Enabled.Optimizer then enableOptimizer() end
     if Enabled.GalaxySkyBright then enableGalaxySkyBright() end
+    if Enabled.InfiniteJump then startInfiniteJump() end
     
     task.wait(0.5)
     
@@ -1838,6 +1910,14 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         return
     end
     
+    -- F6 key to toggle menu (new open/close button)
+    if input.KeyCode == Enum.KeyCode.F6 then
+        guiVisible = not guiVisible
+        main.Visible = guiVisible
+        return
+    end
+    
+    -- U key as alternative toggle (keeping original for compatibility)
     if input.KeyCode == Enum.KeyCode.U then
         guiVisible = not guiVisible
         main.Visible = guiVisible
@@ -1845,6 +1925,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     end
     
     if input.KeyCode == Enum.KeyCode.Space then
+        jumpPressed = true
         spaceHeld = true
         return
     end
@@ -1891,10 +1972,17 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         if VisualSetters.AutoRightEnabled then VisualSetters.AutoRightEnabled(AutoRightEnabled) end
         if AutoRightEnabled then startAutoRight() else stopAutoRight() end
     end
+    
+    if input.KeyCode == KEYBINDS.INFINITEJUMP then
+        Enabled.InfiniteJump = not Enabled.InfiniteJump
+        if VisualSetters.InfiniteJump then VisualSetters.InfiniteJump(Enabled.InfiniteJump) end
+        if Enabled.InfiniteJump then startInfiniteJump() else stopInfiniteJump() end
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.Space then
+        jumpPressed = false
         spaceHeld = false
     end
 end)
@@ -1906,4 +1994,5 @@ Player.CharacterAdded:Connect(function()
     if Enabled.SpamBat then stopSpamBat() task.wait(0.1) startSpamBat() end
     if Enabled.BatAimbot then stopBatAimbot() task.wait(0.1) startBatAimbot() end
     if Enabled.Unwalk then startUnwalk() end
+    -- Infinite Jump automatically works on respawn through the connection
 end)
