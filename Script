@@ -238,7 +238,7 @@ function loadMainScript()
         ScriptUserESP = true,
         InfiniteJump = false,
         Float = false,
-        FOVChanger = false -- New FOV Changer toggle
+        FOVChanger = false
     }
 
     local Values = {
@@ -253,7 +253,7 @@ function loadMainScript()
         HOP_COOLDOWN = 0.08,
         FloatHeight = 15,
         FloatStrength = 0.5,
-        FOVValue = 90 -- Default FOV (70-120 range)
+        FOVValue = 90
     }
 
     local KEYBINDS = {
@@ -266,7 +266,7 @@ function loadMainScript()
         AUTORIGHT = Enum.KeyCode.C,
         INFINITEJUMP = Enum.KeyCode.J,
         FLOAT = Enum.KeyCode.K,
-        FOV = Enum.KeyCode.L -- Keybind for FOV toggle
+        FOV = Enum.KeyCode.L
     }
 
     -- Load Config
@@ -337,12 +337,11 @@ function loadMainScript()
     -- FOV CHANGER
     -- ================================================================
     local fovConnection = nil
-    local originalFOV = 70 -- Default Roblox FOV
+    local originalFOV = 70
 
     local function startFOVChanger()
         if fovConnection then return end
         
-        -- Store original FOV
         local camera = workspace.CurrentCamera
         if camera then
             originalFOV = camera.FieldOfView
@@ -353,13 +352,10 @@ function loadMainScript()
             
             local camera = workspace.CurrentCamera
             if camera then
-                -- Smoothly transition to target FOV
                 local currentFOV = camera.FieldOfView
                 local targetFOV = Values.FOVValue
                 
-                -- Only change if difference is significant
                 if math.abs(currentFOV - targetFOV) > 0.1 then
-                    -- Smooth interpolation
                     local newFOV = currentFOV + (targetFOV - currentFOV) * 0.3
                     camera.FieldOfView = newFOV
                 else
@@ -375,14 +371,12 @@ function loadMainScript()
             fovConnection = nil
         end
         
-        -- Reset to original FOV
         local camera = workspace.CurrentCamera
         if camera then
             camera.FieldOfView = originalFOV
         end
     end
 
-    -- Update original FOV when camera changes
     workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
         task.wait(0.1)
         if Enabled.FOVChanger then
@@ -1674,7 +1668,7 @@ function loadMainScript()
     -- Main Window
     local main = Instance.new("Frame", sg)
     main.Name = "Main"
-    main.Size = UDim2.new(0, 560 * guiScale, 0, 900 * guiScale) -- Increased height for FOV slider
+    main.Size = UDim2.new(0, 560 * guiScale, 0, 900 * guiScale)
     main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -450 * guiScale)
     main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     main.BorderSizePixel = 0
@@ -1829,7 +1823,7 @@ function loadMainScript()
     end
 
     local leftSide = Instance.new("Frame", main)
-    leftSide.Size = UDim2.new(0.48, 0, 0, 810 * guiScale) -- Increased height
+    leftSide.Size = UDim2.new(0.48, 0, 0, 810 * guiScale)
     leftSide.Position = UDim2.new(0.01, 0, 0, 75 * guiScale)
     leftSide.BackgroundTransparency = 1
     leftSide.BorderSizePixel = 0
@@ -1837,7 +1831,7 @@ function loadMainScript()
     leftSide.ZIndex = 2
 
     local rightSide = Instance.new("Frame", main)
-    rightSide.Size = UDim2.new(0.48, 0, 0, 810 * guiScale) -- Increased height
+    rightSide.Size = UDim2.new(0.48, 0, 0, 810 * guiScale)
     rightSide.Position = UDim2.new(0.51, 0, 0, 75 * guiScale)
     rightSide.BackgroundTransparency = 1
     rightSide.BorderSizePixel = 0
@@ -1849,7 +1843,7 @@ function loadMainScript()
     local KeyButtons = {}
     local waitingForKeybind = nil
 
-    -- Toggle creation functions (same as before)
+    -- Toggle creation functions
     local function createToggleWithKey(parent, yPos, labelText, keybindKey, enabledKey, callback, specialColor)
         local row = Instance.new("Frame", parent)
         row.Size = UDim2.new(1, -10 * guiScale, 0, 48 * guiScale)
@@ -2117,80 +2111,129 @@ function loadMainScript()
         return container, setSliderValue
     end
 
-    -- Left side toggles
-    createToggleWithKey(leftSide, 0, "Speed Boost", "SPEED", "SpeedBoost", function(s)
+    -- ============================================
+    -- LEFT SIDE - FEATURES (BALANCED)
+    -- ============================================
+    local leftY = 0
+    
+    -- Speed Boost (with key)
+    createToggleWithKey(leftSide, leftY, "Speed Boost", "SPEED", "SpeedBoost", function(s)
         Enabled.SpeedBoost = s
         if s then startSpeedBoost() else stopSpeedBoost() end
     end)
     _G.setSpeedVisual = VisualSetters.SpeedBoost
+    leftY = leftY + 52
 
-    createSlider(leftSide, 52, "Boost Speed", 1, 70, "BoostSpeed", function(v) Values.BoostSpeed = v end)
+    -- Boost Speed Slider
+    createSlider(leftSide, leftY, "Boost Speed", 1, 70, "BoostSpeed", function(v) Values.BoostSpeed = v end)
+    leftY = leftY + 60
 
-    createToggle(leftSide, 112, "Anti Ragdoll", "AntiRagdoll", function(s)
+    -- Anti Ragdoll
+    createToggle(leftSide, leftY, "Anti Ragdoll", "AntiRagdoll", function(s)
         Enabled.AntiRagdoll = s
         if s then startAntiRagdoll() else stopAntiRagdoll() end
     end)
+    leftY = leftY + 52
 
-    createToggleWithKey(leftSide, 216, "Spin Bot", "SPIN", "SpinBot", function(s)
+    -- Spin Bot (with key)
+    createToggleWithKey(leftSide, leftY, "Spin Bot", "SPIN", "SpinBot", function(s)
         Enabled.SpinBot = s
         if s then startSpinBot() else stopSpinBot() end
     end)
+    leftY = leftY + 52
 
-    createSlider(leftSide, 268, "Spin Speed", 5, 50, "SpinSpeed", function(v) Values.SpinSpeed = v end)
+    -- Spin Speed Slider
+    createSlider(leftSide, leftY, "Spin Speed", 5, 50, "SpinSpeed", function(v) Values.SpinSpeed = v end)
+    leftY = leftY + 60
 
-    createToggle(leftSide, 328, "Spam Bat", "SpamBat", function(s)
+    -- Spam Bat
+    createToggle(leftSide, leftY, "Spam Bat", "SpamBat", function(s)
         Enabled.SpamBat = s
         if s then startSpamBat() else stopSpamBat() end
     end)
+    leftY = leftY + 52
 
-    createToggle(leftSide, 380, "Auto Steal", "AutoSteal", function(s)
+    -- Auto Steal
+    createToggle(leftSide, leftY, "Auto Steal", "AutoSteal", function(s)
         Enabled.AutoSteal = s
         if s then startAutoSteal() else stopAutoSteal() end
     end)
+    leftY = leftY + 52
 
-    createToggleWithKey(leftSide, 432, "Bat Aimbot", "BATAIMBOT", "BatAimbot", function(s)
+    -- Bat Aimbot (with key)
+    createToggleWithKey(leftSide, leftY, "Bat Aimbot", "BATAIMBOT", "BatAimbot", function(s)
         Enabled.BatAimbot = s
         if s then startBatAimbot() else stopBatAimbot() end
     end, C.danger)
+    leftY = leftY + 52
 
-    createToggle(leftSide, 484, "Galaxy Sky Bright", "GalaxySkyBright", function(s)
+    -- Galaxy Sky Bright
+    createToggle(leftSide, leftY, "Galaxy Sky Bright", "GalaxySkyBright", function(s)
         Enabled.GalaxySkyBright = s
         if s then enableGalaxySkyBright() else disableGalaxySkyBright() end
     end, Color3.fromRGB(180, 80, 255))
+    leftY = leftY + 52
 
-    -- Right side toggles
-    createToggleWithKey(rightSide, 0, "Galaxy Mode", "GALAXY", "Galaxy", function(s)
+    -- Auto Left (with key)
+    createToggleWithKey(leftSide, leftY, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
+        AutoWalkEnabled = s
+        Enabled.AutoWalkEnabled = s
+        if s then startAutoWalk() else stopAutoWalk() end
+    end, Color3.fromRGB(100, 150, 255))
+    _G.setAutoLeftVisual = VisualSetters.AutoWalkEnabled
+    leftY = leftY + 52
+
+    -- ============================================
+    -- RIGHT SIDE - FEATURES (BALANCED)
+    -- ============================================
+    local rightY = 0
+
+    -- Galaxy Mode (with key)
+    createToggleWithKey(rightSide, rightY, "Galaxy Mode", "GALAXY", "Galaxy", function(s)
         Enabled.Galaxy = s
         if s then startGalaxy() else stopGalaxy() end
     end, Color3.fromRGB(60, 130, 255))
     _G.setGalaxyVisual = VisualSetters.Galaxy
+    rightY = rightY + 52
 
-    createSlider(rightSide, 52, "Gravity %", 25, 130, "GalaxyGravityPercent", function(v)
+    -- Gravity % Slider
+    createSlider(rightSide, rightY, "Gravity %", 25, 130, "GalaxyGravityPercent", function(v)
         Values.GalaxyGravityPercent = v
         if galaxyEnabled then adjustGalaxyJump() end
     end)
+    rightY = rightY + 60
 
-    createSlider(rightSide, 112, "Hop Power", 10, 80, "HOP_POWER", function(v) Values.HOP_POWER = v end)
+    -- Hop Power Slider
+    createSlider(rightSide, rightY, "Hop Power", 10, 80, "HOP_POWER", function(v) Values.HOP_POWER = v end)
+    rightY = rightY + 60
 
-    createToggle(rightSide, 172, "Speed While Stealing", "SpeedWhileStealing", function(s)
+    -- Speed While Stealing
+    createToggle(rightSide, rightY, "Speed While Stealing", "SpeedWhileStealing", function(s)
         Enabled.SpeedWhileStealing = s
         if s then startSpeedWhileStealing() else stopSpeedWhileStealing() end
     end)
+    rightY = rightY + 52
 
-    createSlider(rightSide, 224, "Steal Speed", 10, 35, "StealingSpeedValue", function(v) Values.StealingSpeedValue = v end)
+    -- Steal Speed Slider
+    createSlider(rightSide, rightY, "Steal Speed", 10, 35, "StealingSpeedValue", function(v) Values.StealingSpeedValue = v end)
+    rightY = rightY + 60
 
-    createToggle(rightSide, 284, "Unwalk", "Unwalk", function(s)
+    -- Unwalk
+    createToggle(rightSide, rightY, "Unwalk", "Unwalk", function(s)
         Enabled.Unwalk = s
         if s then startUnwalk() else stopUnwalk() end
     end)
+    rightY = rightY + 52
 
-    createToggle(rightSide, 336, "Optimizer + XRay", "Optimizer", function(s)
+    -- Optimizer + XRay
+    createToggle(rightSide, rightY, "Optimizer + XRay", "Optimizer", function(s)
         Enabled.Optimizer = s
         if s then enableOptimizer() else disableOptimizer() end
     end)
+    rightY = rightY + 52
 
-    -- Infinite Jump Toggle
-    createToggleWithKey(rightSide, 388, "Infinite Jump", "INFINITEJUMP", "InfiniteJump", function(s)
+    -- Infinite Jump (with key)
+    createToggleWithKey(rightSide, rightY, "Infinite Jump", "INFINITEJUMP", "InfiniteJump", function(s)
         Enabled.InfiniteJump = s
         if s then 
             startInfiniteJump() 
@@ -2198,9 +2241,10 @@ function loadMainScript()
             stopInfiniteJump() 
         end
     end, Color3.fromRGB(100, 200, 255))
+    rightY = rightY + 52
 
-    -- Float Toggle
-    createToggleWithKey(rightSide, 440, "Float Mode", "FLOAT", "Float", function(s)
+    -- Float Mode (with key)
+    createToggleWithKey(rightSide, rightY, "Float Mode", "FLOAT", "Float", function(s)
         Enabled.Float = s
         if s then 
             startFloat() 
@@ -2208,31 +2252,34 @@ function loadMainScript()
             stopFloat() 
         end
     end, Color3.fromRGB(150, 100, 255))
+    rightY = rightY + 52
 
     -- Float Height Slider
-    createSlider(rightSide, 492, "Float Height", 5, 30, "FloatHeight", function(v) 
+    createSlider(rightSide, rightY, "Float Height", 5, 30, "FloatHeight", function(v) 
         Values.FloatHeight = v 
     end)
+    rightY = rightY + 60
 
     -- Float Strength Slider
-    createSlider(rightSide, 552, "Float Strength", 0.2, 1.5, "FloatStrength", function(v) 
+    createSlider(rightSide, rightY, "Float Strength", 0.2, 1.5, "FloatStrength", function(v) 
         Values.FloatStrength = v 
     end)
+    rightY = rightY + 60
 
-    -- FOV Changer Toggle (NEW)
-    createToggleWithKey(rightSide, 612, "FOV Changer", "FOV", "FOVChanger", function(s)
+    -- FOV Changer (with key)
+    createToggleWithKey(rightSide, rightY, "FOV Changer", "FOV", "FOVChanger", function(s)
         Enabled.FOVChanger = s
         if s then 
             startFOVChanger() 
         else 
             stopFOVChanger() 
         end
-    end, Color3.fromRGB(255, 170, 100)) -- Orange color for FOV
+    end, Color3.fromRGB(255, 170, 100))
+    rightY = rightY + 52
 
-    -- FOV Value Slider (NEW)
-    createSlider(rightSide, 664, "FOV Value", 70, 120, "FOVValue", function(v) 
+    -- FOV Value Slider
+    createSlider(rightSide, rightY, "FOV Value", 70, 120, "FOVValue", function(v) 
         Values.FOVValue = v 
-        -- Update immediately if FOV changer is enabled
         if Enabled.FOVChanger then
             local camera = workspace.CurrentCamera
             if camera then
@@ -2240,25 +2287,21 @@ function loadMainScript()
             end
         end
     end)
+    rightY = rightY + 60
 
-    createToggleWithKey(rightSide, 720, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
-        AutoWalkEnabled = s
-        Enabled.AutoWalkEnabled = s
-        if s then startAutoWalk() else stopAutoWalk() end
-    end, Color3.fromRGB(100, 150, 255))
-    _G.setAutoLeftVisual = VisualSetters.AutoWalkEnabled
-
-    createToggleWithKey(rightSide, 772, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
+    -- Auto Right (with key)
+    createToggleWithKey(rightSide, rightY, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
         AutoRightEnabled = s
         Enabled.AutoRightEnabled = s
         if s then startAutoRight() else stopAutoRight() end
     end, Color3.fromRGB(100, 220, 180))
     _G.setAutoRightVisual = VisualSetters.AutoRightEnabled
+    rightY = rightY + 52
 
-    -- Save Button
+    -- Save Button (on right side)
     local SaveBtn = Instance.new("TextButton", rightSide)
     SaveBtn.Size = UDim2.new(1, -10 * guiScale, 0, 50 * guiScale)
-    SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 835 * guiScale) -- Adjusted position
+    SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, rightY)
     SaveBtn.BackgroundColor3 = C.purple
     SaveBtn.Text = "SAVE CONFIG"
     SaveBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -2282,9 +2325,10 @@ function loadMainScript()
         end)
     end)
 
+    -- Info Label (on left side)
     local infoLabel = Instance.new("TextLabel", leftSide)
     infoLabel.Size = UDim2.new(1, 0, 0, 40 * guiScale)
-    infoLabel.Position = UDim2.new(0, 0, 0, 760 * guiScale) -- Adjusted position
+    infoLabel.Position = UDim2.new(0, 0, 0, leftY)
     infoLabel.BackgroundTransparency = 1
     infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float | L=FOV\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
     infoLabel.TextColor3 = C.textDim
