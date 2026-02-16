@@ -67,7 +67,7 @@ local Values = {
     HOP_POWER = 35,
     HOP_COOLDOWN = 0.08,
     FloatHeight = 15, -- Height to float at
-    FloatSpeed = 0.3 -- Slower speed for undetectability
+    FloatStrength = 0.5 -- Strength of floating force
 }
 
 local KEYBINDS = {
@@ -265,20 +265,17 @@ local function stopSpinBot()
 end
 
 -- ================================================================
--- UNDETECTABLE FLOAT MODE - NO KICKS
+-- FIXED UNDETECTABLE FLOAT MODE - ACTUALLY WORKS
 -- ================================================================
 local floatConnection = nil
 local floatTargetHeight = 0
 local floatEnabled = false
-local lastFloatUpdate = 0
-local floatJitterAmount = 0.1 -- Small random movement to look natural
-local floatRandomOffset = 0
+local floatJitter = 0
 
 local function startFloat()
     if floatConnection then return end
     
     floatEnabled = true
-    floatRandomOffset = math.random() * 100 -- Random seed for variation
     
     floatConnection = RunService.Heartbeat:Connect(function()
         if not Enabled.Float then return end
@@ -297,58 +294,58 @@ local function startFloat()
         raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
         raycastParams.FilterDescendantsInstances = {c}
         
+        -- Cast a ray downward to find ground
         local rayOrigin = hrp.Position
-        local rayDirection = Vector3.new(0, -50, 0) -- Shorter ray for performance
+        local rayDirection = Vector3.new(0, -100, 0)
         
         local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
         
         if rayResult then
-            -- Add natural jitter to float height (makes it look like natural floating)
-            local jitter = math.sin(tick() * 2 + floatRandomOffset) * floatJitterAmount
-            floatTargetHeight = rayResult.Position.Y + Values.FloatHeight + jitter
-        else
-            -- If no ground found, use current height
-            floatTargetHeight = hrp.Position.Y
-        end
-        
-        -- Smoothly move player to float height with VERY gentle force
-        local currentY = hrp.Position.Y
-        local diff = floatTargetHeight - currentY
-        
-        -- Only apply very small corrections to avoid detection
-        if math.abs(diff) > 0.1 then
-            -- Very gentle force - looks natural
-            local velocity = hrp.AssemblyLinearVelocity
-            local newYVelocity = diff * Values.FloatSpeed * 3 -- Reduced multiplier
+            -- Calculate target height above ground
+            floatTargetHeight = rayResult.Position.Y + Values.FloatHeight
             
-            -- Apply in small increments
+            -- Add natural floating motion (subtle sine wave)
+            floatJitter = math.sin(tick() * 3) * 0.3
+            
+            -- Current height
+            local currentY = hrp.Position.Y
+            local diff = (floatTargetHeight + floatJitter) - currentY
+            
+            -- Apply force based on difference
+            if math.abs(diff) > 0.1 then
+                local velocity = hrp.AssemblyLinearVelocity
+                
+                -- Calculate force (stronger when further from target)
+                local force = diff * Values.FloatStrength * 10
+                
+                -- Limit force to prevent extreme speeds
+                force = math.clamp(force, -30, 30)
+                
+                -- Apply force by modifying velocity
+                hrp.AssemblyLinearVelocity = Vector3.new(
+                    velocity.X,
+                    velocity.Y * 0.8 + force, -- Blend with current velocity
+                    velocity.Z
+                )
+            end
+        else
+            -- If no ground found, maintain current height with slight damping
+            local velocity = hrp.AssemblyLinearVelocity
             hrp.AssemblyLinearVelocity = Vector3.new(
-                velocity.X, 
-                velocity.Y * 0.95 + newYVelocity * 0.05, -- Blend with existing velocity
+                velocity.X,
+                velocity.Y * 0.95,
                 velocity.Z
             )
         end
         
-        -- IMPORTANT: Don't add any body movers - they're detectable!
-        -- Just use subtle velocity changes
-        
-        -- Occasionally let gravity affect slightly to look natural
-        if math.random() < 0.01 then -- 1% chance each frame
+        -- Small random adjustments to look natural
+        if math.random() < 0.05 then
             local velocity = hrp.AssemblyLinearVelocity
-            hrp.AssemblyLinearVelocity = Vector3.new(velocity.X, velocity.Y - 1, velocity.Z)
-        end
-    end)
-    
-    -- Add a very subtle visual effect that's client-side only (undetectable)
-    task.spawn(function()
-        while Enabled.Float do
-            local c = Player.Character
-            if c and c:FindFirstChild("HumanoidRootPart") then
-                local hrp = c.HumanoidRootPart
-                -- Create a tiny invisible effect (literally nothing that can be detected)
-                -- This is just to make the loop run
-            end
-            task.wait(0.5)
+            hrp.AssemblyLinearVelocity = Vector3.new(
+                velocity.X,
+                velocity.Y + (math.random() - 0.5) * 0.5,
+                velocity.Z
+            )
         end
     end)
 end
@@ -359,8 +356,6 @@ local function stopFloat()
         floatConnection:Disconnect()
         floatConnection = nil
     end
-    
-    -- No cleanup needed since we didn't add any instances
 end
 
 -- ================================================================
@@ -368,9 +363,9 @@ end
 -- ================================================================
 local infiniteJumpConnection = nil
 local lastJumpTime = 0
-local JUMP_COOLDOWN = 0.25 -- Slightly longer to prevent detection
+local JUMP_COOLDOWN = 0.25
 local jumpCount = 0
-local maxJumpsBeforeReset = 20 -- Moderate limit
+local maxJumpsBeforeReset = 20
 local jumpPressed = false
 local spaceHeld = false
 
@@ -386,41 +381,29 @@ local function startInfiniteJump()
         local hum = c:FindFirstChildOfClass("Humanoid")
         local hrp = c:FindFirstChild("HumanoidRootPart")
         
-        -- Check if character exists and is alive
         if hum and hrp and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
             local currentTime = tick()
             
-            -- Cooldown to prevent spam
             if currentTime - lastJumpTime < JUMP_COOLDOWN then return end
             lastJumpTime = currentTime
             
-            -- Increment jump counter
             jumpCount = jumpCount + 1
             
-            -- Safety: if we've jumped too many times, force a small delay
             if jumpCount > maxJumpsBeforeReset then
                 task.wait(0.5)
                 jumpCount = 0
                 return
             end
             
-            -- GOOD JUMP HEIGHT - 48 (slightly lower to avoid detection)
-            -- Only apply when in air
             if hum.FloorMaterial == Enum.Material.Air then
-                -- In air: give a gentle boost
                 local currentVel = hrp.AssemblyLinearVelocity
                 hrp.AssemblyLinearVelocity = Vector3.new(currentVel.X, 48, currentVel.Z)
             else
-                -- On ground: do normal jump
                 hum:ChangeState(Enum.HumanoidStateType.Jumping)
             end
         end
     end)
     
-    -- Remove the heartbeat connection - it was causing detection
-    -- Just use jump requests which are more natural
-    
-    -- Reset jump counter periodically
     task.spawn(function()
         while Enabled.InfiniteJump do
             task.wait(4)
@@ -452,7 +435,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Bat Aimbot (no radius limit, NO auto swing, purple line, smooth movement)
+-- Bat Aimbot
 local aimbotTarget = nil
 
 local function findNearestEnemy(myHRP)
@@ -488,13 +471,11 @@ local function startBatAimbot()
         local hum = c:FindFirstChildOfClass("Humanoid")
         if not h or not hum then return end
         
-        -- Equip bat if not equipped (no swinging)
         local bat = findBat()
         if bat and bat.Parent ~= c then
             hum:EquipTool(bat)
         end
         
-        -- Find target
         local target, dist, torso = findNearestEnemy(h)
         aimbotTarget = torso or target
         
@@ -502,11 +483,10 @@ local function startBatAimbot()
             local dir = (torso.Position - h.Position)
             local flatDir = Vector3.new(dir.X, 0, dir.Z)
             local flatDist = flatDir.Magnitude
-            local spd = 45 -- Slightly slower to avoid detection
+            local spd = 45
             
             if flatDist > 1.5 then
                 local moveDir = flatDir.Unit
-                -- Blend with current velocity to look natural
                 local currentVel = h.AssemblyLinearVelocity
                 h.AssemblyLinearVelocity = Vector3.new(
                     currentVel.X * 0.7 + moveDir.X * spd * 0.3,
@@ -534,7 +514,6 @@ local hopsEnabled = false
 local lastHopTime = 0
 local originalJumpPower = 50
 
--- Capture original jump power safely when character is ready
 local function captureJumpPower()
     local c = Player.Character
     if c then
@@ -545,13 +524,11 @@ local function captureJumpPower()
     end
 end
 
--- Capture on current character
 task.spawn(function()
     task.wait(1)
     captureJumpPower()
 end)
 
--- Recapture when character respawns
 Player.CharacterAdded:Connect(function(char)
     task.wait(1)
     captureJumpPower()
@@ -704,7 +681,7 @@ local function isOnEnemyPlot()
     return false
 end
 
--- Auto walk/right destination coordinates (forward declared for speed boost check)
+-- Auto walk/right destination coordinates
 local POSITION_2 = Vector3.new(-483.12, -4.95, 94.80)
 local POSITION_R2 = Vector3.new(-483.04, -5.09, 23.14)
 local autoWalkPhase = 1
@@ -736,13 +713,11 @@ end
 
 -- ============================================
 -- AUTO LEFT / AUTO RIGHT COORDINATE ESP
--- Small precise markers at exact positions
 -- ============================================
 local coordESPFolder = Instance.new("Folder", workspace)
 coordESPFolder.Name = "Jayy_CoordESP"
 
 local function createCoordMarker(position, labelText, color)
-    -- Small dot at exact position
     local dot = Instance.new("Part", coordESPFolder)
     dot.Name = "CoordMarker_" .. labelText
     dot.Anchored = true
@@ -755,7 +730,6 @@ local function createCoordMarker(position, labelText, color)
     dot.Position = position
     dot.Transparency = 0.2
 
-    -- Small billboard label
     local bb = Instance.new("BillboardGui", dot)
     bb.AlwaysOnTop = true
     bb.Size = UDim2.new(0, 100, 0, 20)
@@ -776,7 +750,6 @@ local function createCoordMarker(position, labelText, color)
     return dot
 end
 
--- Create markers at exact coordinates
 createCoordMarker(Vector3.new(-476.48, -6.28, 92.73), "L1", Color3.fromRGB(100, 150, 255))
 createCoordMarker(Vector3.new(-483.12, -4.95, 94.80), "L END", Color3.fromRGB(60, 130, 255))
 createCoordMarker(Vector3.new(-476.16, -6.52, 25.62), "R1", Color3.fromRGB(100, 220, 180))
@@ -835,7 +808,6 @@ local function startAutoWalk()
             local dist = (targetPos - h.Position).Magnitude
             if dist < 1 then
                 autoWalkPhase = 2
-                -- Immediately start moving to coord 2 this same frame
                 local dir = (POSITION_2 - h.Position)
                 local moveDir = Vector3.new(dir.X, 0, dir.Z).Unit
                 hum:Move(moveDir, false)
@@ -1010,12 +982,10 @@ local stealStartTime = nil
 local progressConnection = nil
 local StealData = {}
 
--- Discord text for progress bar
 local DISCORD_TEXT = "discord.gg/22s"
 
 local function getDiscordProgress(percent)
     local totalChars = #DISCORD_TEXT
-    -- Speed up the text reveal - complete by 70% progress so it's visible longer
     local adjustedPercent = math.min(percent * 1.5, 100)
     local charsToShow = math.floor((adjustedPercent / 100) * totalChars)
     return string.sub(DISCORD_TEXT, 1, charsToShow)
@@ -1298,17 +1268,17 @@ local isMobile = UserInputService.TouchEnabled and not UserInputService.Keyboard
 local guiScale = isMobile and 0.4 or 1
 
 local C = {
-    bg = Color3.fromRGB(255, 255, 255),        -- White background
-    purple = Color3.fromRGB(60, 130, 255),      -- Blue accent
-    purpleLight = Color3.fromRGB(80, 150, 255), -- Lighter blue
-    purpleDark = Color3.fromRGB(40, 100, 220),  -- Darker blue
-    purpleGlow = Color3.fromRGB(100, 170, 255), -- Soft blue
-    accent = Color3.fromRGB(60, 130, 255),      -- Blue accent
-    text = Color3.fromRGB(0, 0, 0),             -- Black text
-    textDim = Color3.fromRGB(60, 60, 60),       -- Dark gray for dim text
-    success = Color3.fromRGB(34, 197, 94),      -- Green
-    danger = Color3.fromRGB(239, 68, 68),       -- Red
-    border = Color3.fromRGB(200, 200, 255)      -- Light blue border
+    bg = Color3.fromRGB(255, 255, 255),
+    purple = Color3.fromRGB(60, 130, 255),
+    purpleLight = Color3.fromRGB(80, 150, 255),
+    purpleDark = Color3.fromRGB(40, 100, 220),
+    purpleGlow = Color3.fromRGB(100, 170, 255),
+    accent = Color3.fromRGB(60, 130, 255),
+    text = Color3.fromRGB(0, 0, 0),
+    textDim = Color3.fromRGB(60, 60, 60),
+    success = Color3.fromRGB(34, 197, 94),
+    danger = Color3.fromRGB(239, 68, 68),
+    border = Color3.fromRGB(200, 200, 255)
 }
 
 local sg = Instance.new("ScreenGui")
@@ -1317,28 +1287,26 @@ sg.ResetOnSpawn = false
 sg.Parent = Player.PlayerGui
 
 -- ============================================
--- SIDE CIRCLE MENU BUTTON - Always visible
+-- SIDE CIRCLE MENU BUTTON
 -- ============================================
 local menuButton = Instance.new("TextButton", sg)
 menuButton.Size = UDim2.new(0, 60 * guiScale, 0, 60 * guiScale)
-menuButton.Position = UDim2.new(0, 10 * guiScale, 0.5, -30 * guiScale) -- Left side, middle of screen
+menuButton.Position = UDim2.new(0, 10 * guiScale, 0.5, -30 * guiScale)
 menuButton.BackgroundColor3 = C.purple
-menuButton.Text = "☰" -- Hamburger menu icon
+menuButton.Text = "☰"
 menuButton.TextColor3 = Color3.new(1, 1, 1)
 menuButton.Font = Enum.Font.GothamBold
 menuButton.TextSize = 30 * guiScale
-menuButton.ZIndex = 100 -- Always on top
-menuButton.Draggable = true -- Allow users to move it
+menuButton.ZIndex = 100
+menuButton.Draggable = true
 menuButton.Active = true
-Instance.new("UICorner", menuButton).CornerRadius = UDim.new(1, 0) -- Perfect circle
+Instance.new("UICorner", menuButton).CornerRadius = UDim.new(1, 0)
 
--- Add a subtle glow effect
 local menuStroke = Instance.new("UIStroke", menuButton)
 menuStroke.Thickness = 2
 menuStroke.Color = Color3.fromRGB(255, 255, 255)
 menuStroke.Transparency = 0.3
 
--- Add pulsing animation to draw attention
 task.spawn(function()
     local pulseDir = 1
     while menuButton and menuButton.Parent do
@@ -1365,7 +1333,7 @@ end
 local progressBar = Instance.new("Frame", sg)
 progressBar.Size = UDim2.new(0, 420 * guiScale, 0, 56 * guiScale)
 progressBar.Position = UDim2.new(0.5, -210 * guiScale, 1, -168 * guiScale)
-progressBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- White
+progressBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 progressBar.BorderSizePixel = 0
 progressBar.ClipsDescendants = true
 Instance.new("UICorner", progressBar).CornerRadius = UDim.new(0, 14 * guiScale)
@@ -1439,7 +1407,7 @@ ProgressPercentLabel.ZIndex = 3
 RadiusInput = Instance.new("TextBox", progressBar)
 RadiusInput.Size = UDim2.new(0, 40 * guiScale, 0, 22 * guiScale)
 RadiusInput.Position = UDim2.new(1, -50 * guiScale, 0, 2 * guiScale)
-RadiusInput.BackgroundColor3 = Color3.fromRGB(240, 240, 255)  -- Very light blue
+RadiusInput.BackgroundColor3 = Color3.fromRGB(240, 240, 255)
 RadiusInput.Text = tostring(Values.STEAL_RADIUS)
 RadiusInput.TextColor3 = C.purpleDark
 RadiusInput.Font = Enum.Font.GothamBold
@@ -1458,7 +1426,7 @@ end)
 local pTrack = Instance.new("Frame", progressBar)
 pTrack.Size = UDim2.new(0.94, 0, 0, 8 * guiScale)
 pTrack.Position = UDim2.new(0.03, 0, 1, -15 * guiScale)
-pTrack.BackgroundColor3 = Color3.fromRGB(220, 220, 240)  -- Light gray-blue
+pTrack.BackgroundColor3 = Color3.fromRGB(220, 220, 240)
 pTrack.ZIndex = 2
 Instance.new("UICorner", pTrack).CornerRadius = UDim.new(1, 0)
 
@@ -1471,17 +1439,17 @@ Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
 -- Main Window
 local main = Instance.new("Frame", sg)
 main.Name = "Main"
-main.Size = UDim2.new(0, 560 * guiScale, 0, 850 * guiScale) -- Increased height for new toggle and sliders
+main.Size = UDim2.new(0, 560 * guiScale, 0, 850 * guiScale)
 main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -425 * guiScale)
-main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- White
+main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
 main.ClipsDescendants = true
-main.Visible = true -- Start visible
+main.Visible = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 18 * guiScale)
 
--- Mobile close button (large and easy to tap)
+-- Mobile close button
 local mobileCloseBtn = Instance.new("TextButton", main)
 mobileCloseBtn.Size = UDim2.new(0, 60 * guiScale, 0, 60 * guiScale)
 mobileCloseBtn.Position = UDim2.new(1, -70 * guiScale, 0, 10 * guiScale)
@@ -1491,14 +1459,14 @@ mobileCloseBtn.TextColor3 = Color3.new(1, 1, 1)
 mobileCloseBtn.Font = Enum.Font.GothamBold
 mobileCloseBtn.TextSize = 30 * guiScale
 mobileCloseBtn.ZIndex = 10
-mobileCloseBtn.Visible = isMobile -- Only visible on mobile
+mobileCloseBtn.Visible = isMobile
 Instance.new("UICorner", mobileCloseBtn).CornerRadius = UDim.new(1, 0)
 
 mobileCloseBtn.MouseButton1Click:Connect(function() 
     sg:Destroy() 
 end)
 
--- Mobile minimize button (to hide/show menu)
+-- Mobile minimize button
 local mobileMinimizeBtn = Instance.new("TextButton", main)
 mobileMinimizeBtn.Size = UDim2.new(0, 60 * guiScale, 0, 60 * guiScale)
 mobileMinimizeBtn.Position = UDim2.new(1, -140 * guiScale, 0, 10 * guiScale)
@@ -1508,7 +1476,7 @@ mobileMinimizeBtn.TextColor3 = Color3.new(1, 1, 1)
 mobileMinimizeBtn.Font = Enum.Font.GothamBold
 mobileMinimizeBtn.TextSize = 30 * guiScale
 mobileMinimizeBtn.ZIndex = 10
-mobileMinimizeBtn.Visible = isMobile -- Only visible on mobile
+mobileMinimizeBtn.Visible = isMobile
 Instance.new("UICorner", mobileMinimizeBtn).CornerRadius = UDim.new(1, 0)
 
 local guiVisible = true
@@ -1525,7 +1493,6 @@ menuButton.MouseButton1Click:Connect(function()
     if isMobile and mobileMinimizeBtn then
         mobileMinimizeBtn.Text = guiVisible and "−" or "+"
     end
-    -- Visual feedback
     menuButton.BackgroundColor3 = guiVisible and C.purple or Color3.fromRGB(100, 200, 100)
     task.delay(0.2, function()
         menuButton.BackgroundColor3 = C.purple
@@ -1622,13 +1589,12 @@ closeBtn.MouseButton1Click:Connect(function() sg:Destroy() end)
 closeBtn.MouseEnter:Connect(function() closeBtn.TextColor3 = C.danger end)
 closeBtn.MouseLeave:Connect(function() closeBtn.TextColor3 = C.textDim end)
 
--- Make close button invisible on mobile (use the big buttons instead)
 if isMobile then
     closeBtn.Visible = false
 end
 
 local leftSide = Instance.new("Frame", main)
-leftSide.Size = UDim2.new(0.48, 0, 0, 760 * guiScale) -- Increased height
+leftSide.Size = UDim2.new(0.48, 0, 0, 760 * guiScale)
 leftSide.Position = UDim2.new(0.01, 0, 0, 75 * guiScale)
 leftSide.BackgroundTransparency = 1
 leftSide.BorderSizePixel = 0
@@ -1636,7 +1602,7 @@ leftSide.ClipsDescendants = true
 leftSide.ZIndex = 2
 
 local rightSide = Instance.new("Frame", main)
-rightSide.Size = UDim2.new(0.48, 0, 0, 760 * guiScale) -- Increased height
+rightSide.Size = UDim2.new(0.48, 0, 0, 760 * guiScale)
 rightSide.Position = UDim2.new(0.51, 0, 0, 75 * guiScale)
 rightSide.BackgroundTransparency = 1
 rightSide.BorderSizePixel = 0
@@ -1648,7 +1614,7 @@ local SliderSetters = {}
 local KeyButtons = {}
 local waitingForKeybind = nil
 
--- CLEAN TOGGLE WITH KEYBIND - No box, just text, key button and switch - SPACED OUT
+-- Toggle creation functions (same as before)
 local function createToggleWithKey(parent, yPos, labelText, keybindKey, enabledKey, callback, specialColor)
     local row = Instance.new("Frame", parent)
     row.Size = UDim2.new(1, -10 * guiScale, 0, 48 * guiScale)
@@ -1687,7 +1653,7 @@ local function createToggleWithKey(parent, yPos, labelText, keybindKey, enabledK
     local toggleBg = Instance.new("Frame", row)
     toggleBg.Size = UDim2.new(0, 50 * guiScale, 0, 26 * guiScale)
     toggleBg.Position = UDim2.new(1, -58 * guiScale, 0.5, -13 * guiScale)
-    toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(220, 220, 240)  -- Light gray when off
+    toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(220, 220, 240)
     toggleBg.ZIndex = 4
     Instance.new("UICorner", toggleBg).CornerRadius = UDim.new(1, 0)
     
@@ -1734,7 +1700,6 @@ local function createToggleWithKey(parent, yPos, labelText, keybindKey, enabledK
     return row, enabledKey, function() return isOn end, setVisual, keyBtn
 end
 
--- CLEAN TOGGLE - No box, just text and switch - SPACED OUT
 local function createToggle(parent, yPos, labelText, enabledKey, callback, specialColor)
     local row = Instance.new("Frame", parent)
     row.Size = UDim2.new(1, -10 * guiScale, 0, 48 * guiScale)
@@ -1760,7 +1725,7 @@ local function createToggle(parent, yPos, labelText, enabledKey, callback, speci
     local toggleBg = Instance.new("Frame", row)
     toggleBg.Size = UDim2.new(0, 50 * guiScale, 0, 26 * guiScale)
     toggleBg.Position = UDim2.new(1, -58 * guiScale, 0.5, -13 * guiScale)
-    toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(220, 220, 240)  -- Light gray when off
+    toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(220, 220, 240)
     toggleBg.ZIndex = 4
     Instance.new("UICorner", toggleBg).CornerRadius = UDim.new(1, 0)
     
@@ -1800,7 +1765,6 @@ local function createToggle(parent, yPos, labelText, enabledKey, callback, speci
     return row, enabledKey, function() return isOn end, setVisual
 end
 
--- CLEAN SLIDER - No box - SPACED OUT
 local function createSlider(parent, yPos, labelText, minVal, maxVal, valueKey, callback)
     local container = Instance.new("Frame", parent)
     container.Size = UDim2.new(1, -10 * guiScale, 0, 56 * guiScale)
@@ -1825,7 +1789,7 @@ local function createSlider(parent, yPos, labelText, minVal, maxVal, valueKey, c
     local valueInput = Instance.new("TextBox", container)
     valueInput.Size = UDim2.new(0, 50 * guiScale, 0, 22 * guiScale)
     valueInput.Position = UDim2.new(1, -58 * guiScale, 0, 2 * guiScale)
-    valueInput.BackgroundColor3 = Color3.fromRGB(240, 240, 255)  -- Very light blue
+    valueInput.BackgroundColor3 = Color3.fromRGB(240, 240, 255)
     valueInput.Text = tostring(defaultVal)
     valueInput.TextColor3 = C.purpleDark
     valueInput.Font = Enum.Font.GothamBold
@@ -1837,7 +1801,7 @@ local function createSlider(parent, yPos, labelText, minVal, maxVal, valueKey, c
     local sliderBg = Instance.new("Frame", container)
     sliderBg.Size = UDim2.new(0.92, 0, 0, 10 * guiScale)
     sliderBg.Position = UDim2.new(0.04, 0, 0, 32 * guiScale)
-    sliderBg.BackgroundColor3 = Color3.fromRGB(220, 220, 240)  -- Light gray-blue
+    sliderBg.BackgroundColor3 = Color3.fromRGB(220, 220, 240)
     sliderBg.ZIndex = 4
     Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1, 0)
     
@@ -1918,7 +1882,7 @@ local function createSlider(parent, yPos, labelText, minVal, maxVal, valueKey, c
     return container, setSliderValue
 end
 
--- Left side toggles - SPACED OUT LIKE BEFORE
+-- Left side toggles
 createToggleWithKey(leftSide, 0, "Speed Boost", "SPEED", "SpeedBoost", function(s)
     Enabled.SpeedBoost = s
     if s then startSpeedBoost() else stopSpeedBoost() end
@@ -1959,7 +1923,7 @@ createToggle(leftSide, 484, "Galaxy Sky Bright", "GalaxySkyBright", function(s)
     if s then enableGalaxySkyBright() else disableGalaxySkyBright() end
 end, Color3.fromRGB(180, 80, 255))
 
--- Right side toggles - SPACED OUT LIKE BEFORE
+-- Right side toggles
 createToggleWithKey(rightSide, 0, "Galaxy Mode", "GALAXY", "Galaxy", function(s)
     Enabled.Galaxy = s
     if s then startGalaxy() else stopGalaxy() end
@@ -2000,24 +1964,24 @@ createToggleWithKey(rightSide, 388, "Infinite Jump", "INFINITEJUMP", "InfiniteJu
     end
 end, Color3.fromRGB(100, 200, 255))
 
--- FLOAT TOGGLE - UNDETECTABLE VERSION
-createToggleWithKey(rightSide, 440, "Float Mode (Undetectable)", "FLOAT", "Float", function(s)
+-- FLOAT TOGGLE - FIXED VERSION
+createToggleWithKey(rightSide, 440, "Float Mode", "FLOAT", "Float", function(s)
     Enabled.Float = s
     if s then 
         startFloat() 
     else 
         stopFloat() 
     end
-end, Color3.fromRGB(150, 100, 255)) -- Purple color for float
+end, Color3.fromRGB(150, 100, 255))
 
 -- Float Height Slider
 createSlider(rightSide, 492, "Float Height", 5, 30, "FloatHeight", function(v) 
     Values.FloatHeight = v 
 end)
 
--- Float Speed Slider (slower = more undetectable)
-createSlider(rightSide, 552, "Float Speed (Undetectable)", 0.1, 0.8, "FloatSpeed", function(v) 
-    Values.FloatSpeed = v 
+-- Float Strength Slider
+createSlider(rightSide, 552, "Float Strength", 0.2, 1.5, "FloatStrength", function(v) 
+    Values.FloatStrength = v 
 end)
 
 createToggleWithKey(rightSide, 612, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
@@ -2037,7 +2001,7 @@ _G.setAutoRightVisual = VisualSetters.AutoRightEnabled
 -- Save Button
 local SaveBtn = Instance.new("TextButton", rightSide)
 SaveBtn.Size = UDim2.new(1, -10 * guiScale, 0, 50 * guiScale)
-SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 727 * guiScale) -- Adjusted position
+SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 727 * guiScale)
 SaveBtn.BackgroundColor3 = C.purple
 SaveBtn.Text = "SAVE CONFIG"
 SaveBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -2063,7 +2027,7 @@ end)
 
 local infoLabel = Instance.new("TextLabel", leftSide)
 infoLabel.Size = UDim2.new(1, 0, 0, 40 * guiScale)
-infoLabel.Position = UDim2.new(0, 0, 0, 710 * guiScale) -- Adjusted position
+infoLabel.Position = UDim2.new(0, 0, 0, 710 * guiScale)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
 infoLabel.TextColor3 = C.textDim
@@ -2071,18 +2035,16 @@ infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9 * guiScale
 infoLabel.ZIndex = 3
 
--- Apply loaded config (delayed to prevent character reset)
+-- Apply loaded config
 task.spawn(function()
-    task.wait(3) -- Wait longer to ensure character is fully loaded and physics settled
+    task.wait(3)
     
-    -- Make sure character exists
     local c = Player.Character
     if not c or not c:FindFirstChild("HumanoidRootPart") then
         c = Player.CharacterAdded:Wait()
         task.wait(1)
     end
     
-    -- Update keybind buttons
     for key, btn in pairs(KeyButtons) do
         if btn and KEYBINDS[key] then
             btn.Text = KEYBINDS[key].Name
@@ -2101,7 +2063,6 @@ task.spawn(function()
         end
     end
     
-    -- Start features that don't affect physics first
     if Enabled.AntiRagdoll then startAntiRagdoll() end
     if Enabled.AutoSteal then startAutoSteal() end
     if Enabled.Optimizer then enableOptimizer() end
@@ -2111,7 +2072,6 @@ task.spawn(function()
     
     task.wait(0.5)
     
-    -- Then start physics features
     if Enabled.SpeedBoost then startSpeedBoost() end
     if Enabled.SpinBot then startSpinBot() end
     if Enabled.SpamBat then startSpamBat() end
@@ -2122,16 +2082,13 @@ task.spawn(function()
     if Enabled.AutoWalkEnabled then AutoWalkEnabled = true startAutoWalk() end
     if Enabled.AutoRightEnabled then AutoRightEnabled = true startAutoRight() end
     
-    if configLoaded then
-        -- Config loaded silently
-    end
+    if configLoaded then end
 end)
 
 -- Input handling
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     
-    -- Handle keybind changes
     if waitingForKeybind and input.KeyCode ~= Enum.KeyCode.Unknown then
         local k = input.KeyCode
         KEYBINDS[waitingForKeybind] = k
@@ -2142,7 +2099,6 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         return
     end
     
-    -- F6 key to toggle menu
     if input.KeyCode == Enum.KeyCode.F6 then
         guiVisible = not guiVisible
         main.Visible = guiVisible
@@ -2152,7 +2108,6 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         return
     end
     
-    -- U key as alternative toggle
     if input.KeyCode == Enum.KeyCode.U then
         guiVisible = not guiVisible
         main.Visible = guiVisible
@@ -2243,5 +2198,4 @@ Player.CharacterAdded:Connect(function()
         task.wait(0.1)
         startFloat()
     end
-    -- Infinite Jump automatically works on respawn through the connection
 end)
