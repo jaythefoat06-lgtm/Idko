@@ -282,39 +282,40 @@ function loadMainScript()
         AUTORIGHT = Enum.KeyCode.C,
         INFINITEJUMP = Enum.KeyCode.J,
         FLOAT = Enum.KeyCode.K,
-        FOV = Enum.KeyCode.L
+        FOV = Enum.KeyCode.L,
+        NONE = Enum.KeyCode.Unknown -- For disabling keybinds
     }
 
     -- ============================================================
     -- CONTROLLER BINDINGS
     -- ============================================================
     local CONTROLLER_BINDS = {
-        SPEED = Enum.KeyCode.ButtonX, -- Xbox X button / PS Square
-        SPIN = Enum.KeyCode.ButtonY, -- Xbox Y button / PS Triangle
-        GALAXY = Enum.KeyCode.ButtonB, -- Xbox B button / PS Circle
-        BATAIMBOT = Enum.KeyCode.ButtonA, -- Xbox A button / PS Cross
-        NUKE = Enum.KeyCode.ButtonR2, -- Right trigger
-        AUTOLEFT = Enum.KeyCode.ButtonL1, -- Left bumper
-        AUTORIGHT = Enum.KeyCode.ButtonR1, -- Right bumper
-        INFINITEJUMP = Enum.KeyCode.ButtonL2, -- Left trigger
-        FLOAT = Enum.KeyCode.DPadUp, -- D-pad up
-        FOV = Enum.KeyCode.DPadDown, -- D-pad down
-        MENU = Enum.KeyCode.ButtonStart -- Start button to toggle menu
+        SPEED = Enum.KeyCode.ButtonX,
+        SPIN = Enum.KeyCode.ButtonY,
+        GALAXY = Enum.KeyCode.ButtonB,
+        BATAIMBOT = Enum.KeyCode.ButtonA,
+        NUKE = Enum.KeyCode.ButtonR2,
+        AUTOLEFT = Enum.KeyCode.ButtonL1,
+        AUTORIGHT = Enum.KeyCode.ButtonR1,
+        INFINITEJUMP = Enum.KeyCode.ButtonL2,
+        FLOAT = Enum.KeyCode.DPadUp,
+        FOV = Enum.KeyCode.DPadDown,
+        MENU = Enum.KeyCode.ButtonStart
     }
 
-    -- Controller binding labels for display
     local CONTROLLER_LABELS = {
-        SPEED = "X (Square)",
-        SPIN = "Y (Triangle)",
-        GALAXY = "B (Circle)",
-        BATAIMBOT = "A (Cross)",
-        NUKE = "RT/R2",
-        AUTOLEFT = "LB/L1",
-        AUTORIGHT = "RB/R1",
-        INFINITEJUMP = "LT/L2",
-        FLOAT = "DPad Up",
-        FOV = "DPad Down",
-        MENU = "Start"
+        SPEED = "X",
+        SPIN = "Y",
+        GALAXY = "B",
+        BATAIMBOT = "A",
+        NUKE = "RT",
+        AUTOLEFT = "LB",
+        AUTORIGHT = "RB",
+        INFINITEJUMP = "LT",
+        FLOAT = "DUp",
+        FOV = "DDown",
+        MENU = "Start",
+        NONE = "None"
     }
 
     -- Load Config
@@ -333,15 +334,15 @@ function loadMainScript()
                         Values[k] = v
                     end
                 end
-                if data.KEY_SPEED then KEYBINDS.SPEED = Enum.KeyCode[data.KEY_SPEED] end
-                if data.KEY_SPIN then KEYBINDS.SPIN = Enum.KeyCode[data.KEY_SPIN] end
-                if data.KEY_GALAXY then KEYBINDS.GALAXY = Enum.KeyCode[data.KEY_GALAXY] end
-                if data.KEY_BATAIMBOT then KEYBINDS.BATAIMBOT = Enum.KeyCode[data.KEY_BATAIMBOT] end
-                if data.KEY_AUTOLEFT then KEYBINDS.AUTOLEFT = Enum.KeyCode[data.KEY_AUTOLEFT] end
-                if data.KEY_AUTORIGHT then KEYBINDS.AUTORIGHT = Enum.KeyCode[data.KEY_AUTORIGHT] end
-                if data.KEY_INFINITEJUMP then KEYBINDS.INFINITEJUMP = Enum.KeyCode[data.KEY_INFINITEJUMP] end
-                if data.KEY_FLOAT then KEYBINDS.FLOAT = Enum.KeyCode[data.KEY_FLOAT] end
-                if data.KEY_FOV then KEYBINDS.FOV = Enum.KeyCode[data.KEY_FOV] end
+                if data.KEY_SPEED then KEYBINDS.SPEED = Enum.KeyCode[data.KEY_SPEED] or Enum.KeyCode.Unknown end
+                if data.KEY_SPIN then KEYBINDS.SPIN = Enum.KeyCode[data.KEY_SPIN] or Enum.KeyCode.Unknown end
+                if data.KEY_GALAXY then KEYBINDS.GALAXY = Enum.KeyCode[data.KEY_GALAXY] or Enum.KeyCode.Unknown end
+                if data.KEY_BATAIMBOT then KEYBINDS.BATAIMBOT = Enum.KeyCode[data.KEY_BATAIMBOT] or Enum.KeyCode.Unknown end
+                if data.KEY_AUTOLEFT then KEYBINDS.AUTOLEFT = Enum.KeyCode[data.KEY_AUTOLEFT] or Enum.KeyCode.Unknown end
+                if data.KEY_AUTORIGHT then KEYBINDS.AUTORIGHT = Enum.KeyCode[data.KEY_AUTORIGHT] or Enum.KeyCode.Unknown end
+                if data.KEY_INFINITEJUMP then KEYBINDS.INFINITEJUMP = Enum.KeyCode[data.KEY_INFINITEJUMP] or Enum.KeyCode.Unknown end
+                if data.KEY_FLOAT then KEYBINDS.FLOAT = Enum.KeyCode[data.KEY_FLOAT] or Enum.KeyCode.Unknown end
+                if data.KEY_FOV then KEYBINDS.FOV = Enum.KeyCode[data.KEY_FOV] or Enum.KeyCode.Unknown end
                 configLoaded = true
             end
         end
@@ -356,15 +357,15 @@ function loadMainScript()
         for k, v in pairs(Values) do
             data[k] = v
         end
-        data.KEY_SPEED = KEYBINDS.SPEED.Name
-        data.KEY_SPIN = KEYBINDS.SPIN.Name
-        data.KEY_GALAXY = KEYBINDS.GALAXY.Name
-        data.KEY_BATAIMBOT = KEYBINDS.BATAIMBOT.Name
-        data.KEY_AUTOLEFT = KEYBINDS.AUTOLEFT.Name
-        data.KEY_AUTORIGHT = KEYBINDS.AUTORIGHT.Name
-        data.KEY_INFINITEJUMP = KEYBINDS.INFINITEJUMP.Name
-        data.KEY_FLOAT = KEYBINDS.FLOAT.Name
-        data.KEY_FOV = KEYBINDS.FOV.Name
+        data.KEY_SPEED = KEYBINDS.SPEED ~= Enum.KeyCode.Unknown and KEYBINDS.SPEED.Name or "None"
+        data.KEY_SPIN = KEYBINDS.SPIN ~= Enum.KeyCode.Unknown and KEYBINDS.SPIN.Name or "None"
+        data.KEY_GALAXY = KEYBINDS.GALAXY ~= Enum.KeyCode.Unknown and KEYBINDS.GALAXY.Name or "None"
+        data.KEY_BATAIMBOT = KEYBINDS.BATAIMBOT ~= Enum.KeyCode.Unknown and KEYBINDS.BATAIMBOT.Name or "None"
+        data.KEY_AUTOLEFT = KEYBINDS.AUTOLEFT ~= Enum.KeyCode.Unknown and KEYBINDS.AUTOLEFT.Name or "None"
+        data.KEY_AUTORIGHT = KEYBINDS.AUTORIGHT ~= Enum.KeyCode.Unknown and KEYBINDS.AUTORIGHT.Name or "None"
+        data.KEY_INFINITEJUMP = KEYBINDS.INFINITEJUMP ~= Enum.KeyCode.Unknown and KEYBINDS.INFINITEJUMP.Name or "None"
+        data.KEY_FLOAT = KEYBINDS.FLOAT ~= Enum.KeyCode.Unknown and KEYBINDS.FLOAT.Name or "None"
+        data.KEY_FOV = KEYBINDS.FOV ~= Enum.KeyCode.Unknown and KEYBINDS.FOV.Name or "None"
         
         local success = false
         if writefile then
@@ -382,14 +383,35 @@ function loadMainScript()
     local BAT_SWING_COOLDOWN = 0.12
 
     -- ================================================================
+    -- CUSTOMIZABLE KEYBIND HANDLER
+    -- ================================================================
+    local function getKeyDisplayName(keyCode)
+        if keyCode == Enum.KeyCode.Unknown then
+            return "None"
+        end
+        return keyCode.Name
+    end
+
+    local function isKeybindActive(keybindKey)
+        return KEYBINDS[keybindKey] ~= Enum.KeyCode.Unknown
+    end
+
+    -- ================================================================
     -- CONTROLLER INPUT HANDLER
     -- ================================================================
     local function setupControllerBindings()
         if not hasController then return end
         
+        -- Clear any existing bindings first
+        for actionName in pairs(CONTROLLER_BINDS) do
+            pcall(function()
+                ContextActionService:UnbindAction(actionName .. "Action")
+            end)
+        end
+        
         -- Speed Boost Toggle
         ContextActionService:BindAction("SpeedBoostAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("SPEED") then
                 Enabled.SpeedBoost = not Enabled.SpeedBoost
                 if VisualSetters.SpeedBoost then VisualSetters.SpeedBoost(Enabled.SpeedBoost) end
                 if Enabled.SpeedBoost then startSpeedBoost() else stopSpeedBoost() end
@@ -398,7 +420,7 @@ function loadMainScript()
         
         -- Spin Bot Toggle
         ContextActionService:BindAction("SpinBotAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("SPIN") then
                 Enabled.SpinBot = not Enabled.SpinBot
                 if VisualSetters.SpinBot then VisualSetters.SpinBot(Enabled.SpinBot) end
                 if Enabled.SpinBot then startSpinBot() else stopSpinBot() end
@@ -407,7 +429,7 @@ function loadMainScript()
         
         -- Galaxy Mode Toggle
         ContextActionService:BindAction("GalaxyAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("GALAXY") then
                 Enabled.Galaxy = not Enabled.Galaxy
                 if VisualSetters.Galaxy then VisualSetters.Galaxy(Enabled.Galaxy) end
                 if Enabled.Galaxy then startGalaxy() else stopGalaxy() end
@@ -416,7 +438,7 @@ function loadMainScript()
         
         -- Bat Aimbot Toggle
         ContextActionService:BindAction("BatAimbotAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("BATAIMBOT") then
                 Enabled.BatAimbot = not Enabled.BatAimbot
                 if VisualSetters.BatAimbot then VisualSetters.BatAimbot(Enabled.BatAimbot) end
                 if Enabled.BatAimbot then startBatAimbot() else stopBatAimbot() end
@@ -425,7 +447,7 @@ function loadMainScript()
         
         -- NUKE Action
         ContextActionService:BindAction("NukeAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("NUKE") then
                 local n = getNearestPlayer()
                 if n then INSTANT_NUKE(n) end
             end
@@ -433,7 +455,7 @@ function loadMainScript()
         
         -- Auto Left Toggle
         ContextActionService:BindAction("AutoLeftAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("AUTOLEFT") then
                 AutoWalkEnabled = not AutoWalkEnabled
                 Enabled.AutoWalkEnabled = AutoWalkEnabled
                 if VisualSetters.AutoWalkEnabled then VisualSetters.AutoWalkEnabled(AutoWalkEnabled) end
@@ -443,7 +465,7 @@ function loadMainScript()
         
         -- Auto Right Toggle
         ContextActionService:BindAction("AutoRightAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("AUTORIGHT") then
                 AutoRightEnabled = not AutoRightEnabled
                 Enabled.AutoRightEnabled = AutoRightEnabled
                 if VisualSetters.AutoRightEnabled then VisualSetters.AutoRightEnabled(AutoRightEnabled) end
@@ -453,7 +475,7 @@ function loadMainScript()
         
         -- Infinite Jump Toggle
         ContextActionService:BindAction("InfiniteJumpAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("INFINITEJUMP") then
                 Enabled.InfiniteJump = not Enabled.InfiniteJump
                 if VisualSetters.InfiniteJump then VisualSetters.InfiniteJump(Enabled.InfiniteJump) end
                 if Enabled.InfiniteJump then startInfiniteJump() else stopInfiniteJump() end
@@ -462,7 +484,7 @@ function loadMainScript()
         
         -- Float Toggle
         ContextActionService:BindAction("FloatAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("FLOAT") then
                 Enabled.Float = not Enabled.Float
                 if VisualSetters.Float then VisualSetters.Float(Enabled.Float) end
                 if Enabled.Float then startFloat() else stopFloat() end
@@ -471,7 +493,7 @@ function loadMainScript()
         
         -- FOV Toggle
         ContextActionService:BindAction("FOVAction", function(actionName, inputState, inputObject)
-            if inputState == Enum.UserInputState.Begin then
+            if inputState == Enum.UserInputState.Begin and isKeybindActive("FOV") then
                 Enabled.FOVChanger = not Enabled.FOVChanger
                 if VisualSetters.FOVChanger then VisualSetters.FOVChanger(Enabled.FOVChanger) end
                 if Enabled.FOVChanger then startFOVChanger() else stopFOVChanger() end
@@ -1825,8 +1847,8 @@ function loadMainScript()
     -- Main Window
     local main = Instance.new("Frame", sg)
     main.Name = "Main"
-    main.Size = UDim2.new(0, 560 * guiScale, 0, 900 * guiScale)
-    main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -450 * guiScale)
+    main.Size = UDim2.new(0, 560 * guiScale, 0, 950 * guiScale) -- Increased height
+    main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -475 * guiScale)
     main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     main.BorderSizePixel = 0
     main.Active = true
@@ -1980,7 +2002,7 @@ function loadMainScript()
     end
 
     local leftSide = Instance.new("Frame", main)
-    leftSide.Size = UDim2.new(0.48, 0, 0, 810 * guiScale)
+    leftSide.Size = UDim2.new(0.48, 0, 0, 860 * guiScale) -- Increased height
     leftSide.Position = UDim2.new(0.01, 0, 0, 75 * guiScale)
     leftSide.BackgroundTransparency = 1
     leftSide.BorderSizePixel = 0
@@ -1988,7 +2010,7 @@ function loadMainScript()
     leftSide.ZIndex = 2
 
     local rightSide = Instance.new("Frame", main)
-    rightSide.Size = UDim2.new(0.48, 0, 0, 810 * guiScale)
+    rightSide.Size = UDim2.new(0.48, 0, 0, 860 * guiScale) -- Increased height
     rightSide.Position = UDim2.new(0.51, 0, 0, 75 * guiScale)
     rightSide.BackgroundTransparency = 1
     rightSide.BorderSizePixel = 0
@@ -2000,8 +2022,8 @@ function loadMainScript()
     local KeyButtons = {}
     local waitingForKeybind = nil
 
-    -- Toggle creation functions
-    local function createToggleWithKey(parent, yPos, labelText, keybindKey, enabledKey, callback, specialColor)
+    -- CUSTOMIZABLE TOGGLE WITH KEYBIND BUTTON
+    local function createCustomizableToggle(parent, yPos, labelText, keybindKey, enabledKey, callback, specialColor)
         local row = Instance.new("Frame", parent)
         row.Size = UDim2.new(1, -10 * guiScale, 0, 48 * guiScale)
         row.Position = UDim2.new(0, 5 * guiScale, 0, yPos * guiScale)
@@ -2009,57 +2031,63 @@ function loadMainScript()
         row.BorderSizePixel = 0
         row.ZIndex = 3
         
+        -- Keybind button (click to change)
         local keyBtn = Instance.new("TextButton", row)
-        keyBtn.Size = UDim2.new(0, 36 * guiScale, 0, 28 * guiScale)
+        keyBtn.Size = UDim2.new(0, 50 * guiScale, 0, 28 * guiScale)
         keyBtn.Position = UDim2.new(0, 3 * guiScale, 0.5, -14 * guiScale)
         keyBtn.BackgroundColor3 = C.purple
         
-        -- Show controller button if connected, otherwise keyboard key
+        -- Show current keybind
         if hasController and CONTROLLER_LABELS[keybindKey] then
             keyBtn.Text = CONTROLLER_LABELS[keybindKey]
+        elseif KEYBINDS[keybindKey] and KEYBINDS[keybindKey] ~= Enum.KeyCode.Unknown then
+            keyBtn.Text = getKeyDisplayName(KEYBINDS[keybindKey])
         else
-            keyBtn.Text = KEYBINDS[keybindKey].Name
+            keyBtn.Text = "None"
         end
         
         keyBtn.TextColor3 = Color3.new(1, 1, 1)
         keyBtn.Font = Enum.Font.GothamBold
-        keyBtn.TextSize = 11 * guiScale
+        keyBtn.TextSize = 10 * guiScale
         keyBtn.ZIndex = 4
-        Instance.new("UICorner", keyBtn).CornerRadius = UDim.new(0, 8 * guiScale)
+        Instance.new("UICorner", keyBtn).CornerRadius = UDim.new(0, 6 * guiScale)
         
         KeyButtons[keybindKey] = keyBtn
         
+        -- Label
         local label = Instance.new("TextLabel", row)
-        label.Size = UDim2.new(0.55, 0, 1, 0)
-        label.Position = UDim2.new(0, 45 * guiScale, 0, 0)
+        label.Size = UDim2.new(0.45, 0, 1, 0)
+        label.Position = UDim2.new(0, 58 * guiScale, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = labelText
         label.TextColor3 = C.text
         label.Font = Enum.Font.GothamSemibold
-        label.TextSize = 14 * guiScale
+        label.TextSize = 13 * guiScale
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.ZIndex = 4
         
+        -- Toggle switch
         local onColor = specialColor or C.purple
         local defaultOn = Enabled[enabledKey]
         
         local toggleBg = Instance.new("Frame", row)
-        toggleBg.Size = UDim2.new(0, 50 * guiScale, 0, 26 * guiScale)
-        toggleBg.Position = UDim2.new(1, -58 * guiScale, 0.5, -13 * guiScale)
+        toggleBg.Size = UDim2.new(0, 46 * guiScale, 0, 24 * guiScale)
+        toggleBg.Position = UDim2.new(1, -52 * guiScale, 0.5, -12 * guiScale)
         toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(220, 220, 240)
         toggleBg.ZIndex = 4
         Instance.new("UICorner", toggleBg).CornerRadius = UDim.new(1, 0)
         
         local toggleCircle = Instance.new("Frame", toggleBg)
-        toggleCircle.Size = UDim2.new(0, 20 * guiScale, 0, 20 * guiScale)
-        toggleCircle.Position = defaultOn and UDim2.new(1, -23 * guiScale, 0.5, -10 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -10 * guiScale)
+        toggleCircle.Size = UDim2.new(0, 18 * guiScale, 0, 18 * guiScale)
+        toggleCircle.Position = defaultOn and UDim2.new(1, -21 * guiScale, 0.5, -9 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -9 * guiScale)
         toggleCircle.BackgroundColor3 = Color3.new(1, 1, 1)
         toggleCircle.ZIndex = 5
         Instance.new("UICorner", toggleCircle).CornerRadius = UDim.new(1, 0)
         
+        -- Click area for toggle
         local clickBtn = Instance.new("TextButton", row)
-        clickBtn.Size = UDim2.new(0.6, 0, 1, 0)
-        clickBtn.Position = UDim2.new(0.4, 0, 0, 0)
+        clickBtn.Size = UDim2.new(0.3, 0, 1, 0)
+        clickBtn.Position = UDim2.new(0.7, 0, 0, 0)
         clickBtn.BackgroundTransparency = 1
         clickBtn.Text = ""
         clickBtn.ZIndex = 6
@@ -2069,7 +2097,9 @@ function loadMainScript()
         local function setVisual(state, skipCallback)
             isOn = state
             TweenService:Create(toggleBg, TweenInfo.new(0.3), {BackgroundColor3 = isOn and onColor or Color3.fromRGB(220, 220, 240)}):Play()
-            TweenService:Create(toggleCircle, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Position = isOn and UDim2.new(1, -23 * guiScale, 0.5, -10 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -10 * guiScale)}):Play()
+            TweenService:Create(toggleCircle, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+                Position = isOn and UDim2.new(1, -21 * guiScale, 0.5, -9 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -9 * guiScale)
+            }):Play()
             if not skipCallback then
                 callback(isOn)
             end
@@ -2077,6 +2107,7 @@ function loadMainScript()
         
         VisualSetters[enabledKey] = setVisual
         
+        -- Toggle click
         clickBtn.MouseButton1Click:Connect(function()
             isOn = not isOn
             Enabled[enabledKey] = isOn
@@ -2084,15 +2115,34 @@ function loadMainScript()
             playSound("rbxassetid://6895079813", 0.4, 1)
         end)
         
+        -- Keybind button click - allows setting to any key or "None"
         keyBtn.MouseButton1Click:Connect(function()
             waitingForKeybind = keybindKey
-            keyBtn.Text = "..."
+            keyBtn.Text = "Press Key..."
+            keyBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 100)
             playSound("rbxassetid://6895079813", 0.3, 1.5)
+            
+            -- Create a timeout for keybind setting
+            task.delay(5, function()
+                if waitingForKeybind == keybindKey then
+                    waitingForKeybind = nil
+                    -- Update button text
+                    if hasController and CONTROLLER_LABELS[keybindKey] then
+                        keyBtn.Text = CONTROLLER_LABELS[keybindKey]
+                    elseif KEYBINDS[keybindKey] and KEYBINDS[keybindKey] ~= Enum.KeyCode.Unknown then
+                        keyBtn.Text = getKeyDisplayName(KEYBINDS[keybindKey])
+                    else
+                        keyBtn.Text = "None"
+                    end
+                    keyBtn.BackgroundColor3 = C.purple
+                end
+            end)
         end)
         
         return row, enabledKey, function() return isOn end, setVisual, keyBtn
     end
 
+    -- Regular toggle without keybind
     local function createToggle(parent, yPos, labelText, enabledKey, callback, specialColor)
         local row = Instance.new("Frame", parent)
         row.Size = UDim2.new(1, -10 * guiScale, 0, 48 * guiScale)
@@ -2116,15 +2166,15 @@ function loadMainScript()
         local defaultOn = Enabled[enabledKey]
         
         local toggleBg = Instance.new("Frame", row)
-        toggleBg.Size = UDim2.new(0, 50 * guiScale, 0, 26 * guiScale)
-        toggleBg.Position = UDim2.new(1, -58 * guiScale, 0.5, -13 * guiScale)
+        toggleBg.Size = UDim2.new(0, 46 * guiScale, 0, 24 * guiScale)
+        toggleBg.Position = UDim2.new(1, -52 * guiScale, 0.5, -12 * guiScale)
         toggleBg.BackgroundColor3 = defaultOn and onColor or Color3.fromRGB(220, 220, 240)
         toggleBg.ZIndex = 4
         Instance.new("UICorner", toggleBg).CornerRadius = UDim.new(1, 0)
         
         local toggleCircle = Instance.new("Frame", toggleBg)
-        toggleCircle.Size = UDim2.new(0, 20 * guiScale, 0, 20 * guiScale)
-        toggleCircle.Position = defaultOn and UDim2.new(1, -23 * guiScale, 0.5, -10 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -10 * guiScale)
+        toggleCircle.Size = UDim2.new(0, 18 * guiScale, 0, 18 * guiScale)
+        toggleCircle.Position = defaultOn and UDim2.new(1, -21 * guiScale, 0.5, -9 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -9 * guiScale)
         toggleCircle.BackgroundColor3 = Color3.new(1, 1, 1)
         toggleCircle.ZIndex = 5
         Instance.new("UICorner", toggleCircle).CornerRadius = UDim.new(1, 0)
@@ -2140,7 +2190,9 @@ function loadMainScript()
         local function setVisual(state, skipCallback)
             isOn = state
             TweenService:Create(toggleBg, TweenInfo.new(0.3), {BackgroundColor3 = isOn and onColor or Color3.fromRGB(220, 220, 240)}):Play()
-            TweenService:Create(toggleCircle, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Position = isOn and UDim2.new(1, -23 * guiScale, 0.5, -10 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -10 * guiScale)}):Play()
+            TweenService:Create(toggleCircle, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+                Position = isOn and UDim2.new(1, -21 * guiScale, 0.5, -9 * guiScale) or UDim2.new(0, 3 * guiScale, 0.5, -9 * guiScale)
+            }):Play()
             if not skipCallback then
                 callback(isOn)
             end
@@ -2158,6 +2210,7 @@ function loadMainScript()
         return row, enabledKey, function() return isOn end, setVisual
     end
 
+    -- Slider creation (unchanged)
     local function createSlider(parent, yPos, labelText, minVal, maxVal, valueKey, callback)
         local container = Instance.new("Frame", parent)
         container.Size = UDim2.new(1, -10 * guiScale, 0, 56 * guiScale)
@@ -2180,8 +2233,8 @@ function loadMainScript()
         local defaultVal = Values[valueKey]
         
         local valueInput = Instance.new("TextBox", container)
-        valueInput.Size = UDim2.new(0, 50 * guiScale, 0, 22 * guiScale)
-        valueInput.Position = UDim2.new(1, -58 * guiScale, 0, 2 * guiScale)
+        valueInput.Size = UDim2.new(0, 45 * guiScale, 0, 22 * guiScale)
+        valueInput.Position = UDim2.new(1, -52 * guiScale, 0, 2 * guiScale)
         valueInput.BackgroundColor3 = Color3.fromRGB(240, 240, 255)
         valueInput.Text = tostring(defaultVal)
         valueInput.TextColor3 = C.purpleDark
@@ -2276,12 +2329,12 @@ function loadMainScript()
     end
 
     -- ============================================
-    -- LEFT SIDE - FEATURES
+    -- LEFT SIDE - FEATURES (with customizable keybinds)
     -- ============================================
     local leftY = 0
     
-    -- Speed Boost (with key)
-    createToggleWithKey(leftSide, leftY, "Speed Boost", "SPEED", "SpeedBoost", function(s)
+    -- Speed Boost (customizable key)
+    createCustomizableToggle(leftSide, leftY, "Speed Boost", "SPEED", "SpeedBoost", function(s)
         Enabled.SpeedBoost = s
         if s then startSpeedBoost() else stopSpeedBoost() end
     end)
@@ -2292,15 +2345,15 @@ function loadMainScript()
     createSlider(leftSide, leftY, "Boost Speed", 1, 70, "BoostSpeed", function(v) Values.BoostSpeed = v end)
     leftY = leftY + 60
 
-    -- Anti Ragdoll
+    -- Anti Ragdoll (no keybind)
     createToggle(leftSide, leftY, "Anti Ragdoll", "AntiRagdoll", function(s)
         Enabled.AntiRagdoll = s
         if s then startAntiRagdoll() else stopAntiRagdoll() end
     end)
     leftY = leftY + 52
 
-    -- Spin Bot (with key)
-    createToggleWithKey(leftSide, leftY, "Spin Bot", "SPIN", "SpinBot", function(s)
+    -- Spin Bot (customizable key)
+    createCustomizableToggle(leftSide, leftY, "Spin Bot", "SPIN", "SpinBot", function(s)
         Enabled.SpinBot = s
         if s then startSpinBot() else stopSpinBot() end
     end)
@@ -2310,36 +2363,36 @@ function loadMainScript()
     createSlider(leftSide, leftY, "Spin Speed", 5, 50, "SpinSpeed", function(v) Values.SpinSpeed = v end)
     leftY = leftY + 60
 
-    -- Spam Bat
+    -- Spam Bat (no keybind)
     createToggle(leftSide, leftY, "Spam Bat", "SpamBat", function(s)
         Enabled.SpamBat = s
         if s then startSpamBat() else stopSpamBat() end
     end)
     leftY = leftY + 52
 
-    -- Auto Steal
+    -- Auto Steal (no keybind)
     createToggle(leftSide, leftY, "Auto Steal", "AutoSteal", function(s)
         Enabled.AutoSteal = s
         if s then startAutoSteal() else stopAutoSteal() end
     end)
     leftY = leftY + 52
 
-    -- Bat Aimbot (with key)
-    createToggleWithKey(leftSide, leftY, "Bat Aimbot", "BATAIMBOT", "BatAimbot", function(s)
+    -- Bat Aimbot (customizable key)
+    createCustomizableToggle(leftSide, leftY, "Bat Aimbot", "BATAIMBOT", "BatAimbot", function(s)
         Enabled.BatAimbot = s
         if s then startBatAimbot() else stopBatAimbot() end
     end, C.danger)
     leftY = leftY + 52
 
-    -- Galaxy Sky Bright
+    -- Galaxy Sky Bright (no keybind)
     createToggle(leftSide, leftY, "Galaxy Sky Bright", "GalaxySkyBright", function(s)
         Enabled.GalaxySkyBright = s
         if s then enableGalaxySkyBright() else disableGalaxySkyBright() end
     end, Color3.fromRGB(180, 80, 255))
     leftY = leftY + 52
 
-    -- Auto Left (with key)
-    createToggleWithKey(leftSide, leftY, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
+    -- Auto Left (customizable key)
+    createCustomizableToggle(leftSide, leftY, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
         AutoWalkEnabled = s
         Enabled.AutoWalkEnabled = s
         if s then startAutoWalk() else stopAutoWalk() end
@@ -2348,12 +2401,12 @@ function loadMainScript()
     leftY = leftY + 52
 
     -- ============================================
-    -- RIGHT SIDE - FEATURES
+    -- RIGHT SIDE - FEATURES (with customizable keybinds)
     -- ============================================
     local rightY = 0
 
-    -- Galaxy Mode (with key)
-    createToggleWithKey(rightSide, rightY, "Galaxy Mode", "GALAXY", "Galaxy", function(s)
+    -- Galaxy Mode (customizable key)
+    createCustomizableToggle(rightSide, rightY, "Galaxy Mode", "GALAXY", "Galaxy", function(s)
         Enabled.Galaxy = s
         if s then startGalaxy() else stopGalaxy() end
     end, Color3.fromRGB(60, 130, 255))
@@ -2371,7 +2424,7 @@ function loadMainScript()
     createSlider(rightSide, rightY, "Hop Power", 10, 80, "HOP_POWER", function(v) Values.HOP_POWER = v end)
     rightY = rightY + 60
 
-    -- Speed While Stealing
+    -- Speed While Stealing (no keybind)
     createToggle(rightSide, rightY, "Speed While Stealing", "SpeedWhileStealing", function(s)
         Enabled.SpeedWhileStealing = s
         if s then startSpeedWhileStealing() else stopSpeedWhileStealing() end
@@ -2382,22 +2435,22 @@ function loadMainScript()
     createSlider(rightSide, rightY, "Steal Speed", 10, 35, "StealingSpeedValue", function(v) Values.StealingSpeedValue = v end)
     rightY = rightY + 60
 
-    -- Unwalk
+    -- Unwalk (no keybind)
     createToggle(rightSide, rightY, "Unwalk", "Unwalk", function(s)
         Enabled.Unwalk = s
         if s then startUnwalk() else stopUnwalk() end
     end)
     rightY = rightY + 52
 
-    -- Optimizer + XRay
+    -- Optimizer + XRay (no keybind)
     createToggle(rightSide, rightY, "Optimizer + XRay", "Optimizer", function(s)
         Enabled.Optimizer = s
         if s then enableOptimizer() else disableOptimizer() end
     end)
     rightY = rightY + 52
 
-    -- Infinite Jump (with key)
-    createToggleWithKey(rightSide, rightY, "Infinite Jump", "INFINITEJUMP", "InfiniteJump", function(s)
+    -- Infinite Jump (customizable key)
+    createCustomizableToggle(rightSide, rightY, "Infinite Jump", "INFINITEJUMP", "InfiniteJump", function(s)
         Enabled.InfiniteJump = s
         if s then 
             startInfiniteJump() 
@@ -2407,8 +2460,8 @@ function loadMainScript()
     end, Color3.fromRGB(100, 200, 255))
     rightY = rightY + 52
 
-    -- Float Mode (with key)
-    createToggleWithKey(rightSide, rightY, "Float Mode", "FLOAT", "Float", function(s)
+    -- Float Mode (customizable key)
+    createCustomizableToggle(rightSide, rightY, "Float Mode", "FLOAT", "Float", function(s)
         Enabled.Float = s
         if s then 
             startFloat() 
@@ -2430,8 +2483,8 @@ function loadMainScript()
     end)
     rightY = rightY + 60
 
-    -- FOV Changer (with key)
-    createToggleWithKey(rightSide, rightY, "FOV Changer", "FOV", "FOVChanger", function(s)
+    -- FOV Changer (customizable key)
+    createCustomizableToggle(rightSide, rightY, "FOV Changer", "FOV", "FOVChanger", function(s)
         Enabled.FOVChanger = s
         if s then 
             startFOVChanger() 
@@ -2453,13 +2506,102 @@ function loadMainScript()
     end)
     rightY = rightY + 60
 
-    -- Auto Right (with key)
-    createToggleWithKey(rightSide, rightY, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
+    -- Auto Right (customizable key)
+    createCustomizableToggle(rightSide, rightY, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
         AutoRightEnabled = s
         Enabled.AutoRightEnabled = s
         if s then startAutoRight() else stopAutoRight() end
     end, Color3.fromRGB(100, 220, 180))
     _G.setAutoRightVisual = VisualSetters.AutoRightEnabled
+    rightY = rightY + 52
+
+    -- NUKE (customizable key) - Special action
+    local nukeRow = Instance.new("Frame", rightSide)
+    nukeRow.Size = UDim2.new(1, -10 * guiScale, 0, 48 * guiScale)
+    nukeRow.Position = UDim2.new(0, 5 * guiScale, 0, rightY)
+    nukeRow.BackgroundTransparency = 1
+    nukeRow.BorderSizePixel = 0
+    nukeRow.ZIndex = 3
+    
+    -- Keybind button for NUKE
+    local nukeKeyBtn = Instance.new("TextButton", nukeRow)
+    nukeKeyBtn.Size = UDim2.new(0, 50 * guiScale, 0, 28 * guiScale)
+    nukeKeyBtn.Position = UDim2.new(0, 3 * guiScale, 0.5, -14 * guiScale)
+    nukeKeyBtn.BackgroundColor3 = C.danger
+    
+    if hasController and CONTROLLER_LABELS.NUKE then
+        nukeKeyBtn.Text = CONTROLLER_LABELS.NUKE
+    elseif KEYBINDS.NUKE and KEYBINDS.NUKE ~= Enum.KeyCode.Unknown then
+        nukeKeyBtn.Text = getKeyDisplayName(KEYBINDS.NUKE)
+    else
+        nukeKeyBtn.Text = "None"
+    end
+    
+    nukeKeyBtn.TextColor3 = Color3.new(1, 1, 1)
+    nukeKeyBtn.Font = Enum.Font.GothamBold
+    nukeKeyBtn.TextSize = 10 * guiScale
+    nukeKeyBtn.ZIndex = 4
+    Instance.new("UICorner", nukeKeyBtn).CornerRadius = UDim.new(0, 6 * guiScale)
+    
+    KeyButtons.NUKE = nukeKeyBtn
+    
+    local nukeLabel = Instance.new("TextLabel", nukeRow)
+    nukeLabel.Size = UDim2.new(0.45, 0, 1, 0)
+    nukeLabel.Position = UDim2.new(0, 58 * guiScale, 0, 0)
+    nukeLabel.BackgroundTransparency = 1
+    nukeLabel.Text = "NUKE"
+    nukeLabel.TextColor3 = C.danger
+    nukeLabel.Font = Enum.Font.GothamBold
+    nukeLabel.TextSize = 14 * guiScale
+    nukeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nukeLabel.ZIndex = 4
+    
+    -- Click area for NUKE
+    local nukeClickBtn = Instance.new("TextButton", nukeRow)
+    nukeClickBtn.Size = UDim2.new(0.3, 0, 1, 0)
+    nukeClickBtn.Position = UDim2.new(0.7, 0, 0, 0)
+    nukeClickBtn.BackgroundColor3 = C.danger
+    nukeClickBtn.BackgroundTransparency = 0.8
+    nukeClickBtn.Text = "FIRE"
+    nukeClickBtn.TextColor3 = Color3.new(1, 1, 1)
+    nukeClickBtn.Font = Enum.Font.GothamBold
+    nukeClickBtn.TextSize = 12 * guiScale
+    nukeClickBtn.ZIndex = 6
+    Instance.new("UICorner", nukeClickBtn).CornerRadius = UDim.new(0, 6 * guiScale)
+    
+    nukeClickBtn.MouseButton1Click:Connect(function()
+        local n = getNearestPlayer()
+        if n then INSTANT_NUKE(n) end
+        nukeClickBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        nukeClickBtn.TextColor3 = C.danger
+        task.delay(0.2, function()
+            nukeClickBtn.BackgroundColor3 = C.danger
+            nukeClickBtn.BackgroundTransparency = 0.8
+            nukeClickBtn.TextColor3 = Color3.new(1, 1, 1)
+        end)
+    end)
+    
+    nukeKeyBtn.MouseButton1Click:Connect(function()
+        waitingForKeybind = "NUKE"
+        nukeKeyBtn.Text = "Press Key..."
+        nukeKeyBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 100)
+        playSound("rbxassetid://6895079813", 0.3, 1.5)
+        
+        task.delay(5, function()
+            if waitingForKeybind == "NUKE" then
+                waitingForKeybind = nil
+                if hasController and CONTROLLER_LABELS.NUKE then
+                    nukeKeyBtn.Text = CONTROLLER_LABELS.NUKE
+                elseif KEYBINDS.NUKE and KEYBINDS.NUKE ~= Enum.KeyCode.Unknown then
+                    nukeKeyBtn.Text = getKeyDisplayName(KEYBINDS.NUKE)
+                else
+                    nukeKeyBtn.Text = "None"
+                end
+                nukeKeyBtn.BackgroundColor3 = C.danger
+            end
+        end)
+    end)
+    
     rightY = rightY + 52
 
     -- Save Button (on right side)
@@ -2495,12 +2637,7 @@ function loadMainScript()
     infoLabel.Position = UDim2.new(0, 0, 0, leftY)
     infoLabel.BackgroundTransparency = 1
     
-    -- Show controller controls if connected
-    if hasController then
-        infoLabel.Text = "X=Speed | Y=Spin | B=Galaxy | A=Aimbot | LT=InfJump | DUp=Float | DDown=FOV\nLB=AutoLeft | RB=AutoRight | RT=Nuke | Start=Menu"
-    else
-        infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float | L=FOV\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
-    end
+    infoLabel.Text = "Click key buttons to change binds • Set to 'None' to disable"
     
     infoLabel.TextColor3 = C.textDim
     infoLabel.Font = Enum.Font.Gotham
@@ -2522,8 +2659,6 @@ function loadMainScript()
                 btn.Text = CONTROLLER_LABELS[key]
             end
         end
-        -- Update info label
-        infoLabel.Text = "X=Speed | Y=Spin | B=Galaxy | A=Aimbot | LT=InfJump | DUp=Float | DDown=FOV\nLB=AutoLeft | RB=AutoRight | RT=Nuke | Start=Menu"
     end)
 
     UserInputService.GamepadDisconnected:Connect(function()
@@ -2531,12 +2666,12 @@ function loadMainScript()
         if not hasController then
             -- Revert to keyboard labels
             for key, btn in pairs(KeyButtons) do
-                if btn and KEYBINDS[key] then
-                    btn.Text = KEYBINDS[key].Name
+                if btn and KEYBINDS[key] and KEYBINDS[key] ~= Enum.KeyCode.Unknown then
+                    btn.Text = getKeyDisplayName(KEYBINDS[key])
+                elseif btn then
+                    btn.Text = "None"
                 end
             end
-            -- Update info label
-            infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float | L=FOV\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
         end
     end)
 
@@ -2554,8 +2689,10 @@ function loadMainScript()
             if btn then
                 if hasController and CONTROLLER_LABELS[key] then
                     btn.Text = CONTROLLER_LABELS[key]
-                elseif KEYBINDS[key] then
-                    btn.Text = KEYBINDS[key].Name
+                elseif KEYBINDS[key] and KEYBINDS[key] ~= Enum.KeyCode.Unknown then
+                    btn.Text = getKeyDisplayName(KEYBINDS[key])
+                else
+                    btn.Text = "None"
                 end
             end
         end
@@ -2595,30 +2732,39 @@ function loadMainScript()
         if configLoaded then end
     end)
 
-    -- Input handling (keep keyboard support)
+    -- Input handling for keyboard
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         
+        -- Handle keybind changes
         if waitingForKeybind and input.KeyCode ~= Enum.KeyCode.Unknown then
             local k = input.KeyCode
-            KEYBINDS[waitingForKeybind] = k
-            if KeyButtons[waitingForKeybind] then
-                KeyButtons[waitingForKeybind].Text = k.Name
+            -- Allow setting to any key, including Escape to set to None
+            if k == Enum.KeyCode.Escape then
+                KEYBINDS[waitingForKeybind] = Enum.KeyCode.Unknown
+            else
+                KEYBINDS[waitingForKeybind] = k
             end
+            
+            -- Update button text
+            if KeyButtons[waitingForKeybind] then
+                if KEYBINDS[waitingForKeybind] == Enum.KeyCode.Unknown then
+                    KeyButtons[waitingForKeybind].Text = "None"
+                else
+                    KeyButtons[waitingForKeybind].Text = getKeyDisplayName(KEYBINDS[waitingForKeybind])
+                end
+                KeyButtons[waitingForKeybind].BackgroundColor3 = C.purple
+                if waitingForKeybind == "NUKE" then
+                    KeyButtons[waitingForKeybind].BackgroundColor3 = C.danger
+                end
+            end
+            
             waitingForKeybind = nil
             return
         end
         
-        if input.KeyCode == Enum.KeyCode.F6 then
-            guiVisible = not guiVisible
-            main.Visible = guiVisible
-            if isMobile and mobileMinimizeBtn then
-                mobileMinimizeBtn.Text = guiVisible and "−" or "+"
-            end
-            return
-        end
-        
-        if input.KeyCode == Enum.KeyCode.U then
+        -- F6/U to toggle menu
+        if input.KeyCode == Enum.KeyCode.F6 or input.KeyCode == Enum.KeyCode.U then
             guiVisible = not guiVisible
             main.Visible = guiVisible
             if isMobile and mobileMinimizeBtn then
@@ -2633,62 +2779,63 @@ function loadMainScript()
             return
         end
         
-        if input.KeyCode == KEYBINDS.SPEED then
+        -- Check all keybinds
+        if input.KeyCode == KEYBINDS.SPEED and KEYBINDS.SPEED ~= Enum.KeyCode.Unknown then
             Enabled.SpeedBoost = not Enabled.SpeedBoost
             if VisualSetters.SpeedBoost then VisualSetters.SpeedBoost(Enabled.SpeedBoost) end
             if Enabled.SpeedBoost then startSpeedBoost() else stopSpeedBoost() end
         end
         
-        if input.KeyCode == KEYBINDS.SPIN then
+        if input.KeyCode == KEYBINDS.SPIN and KEYBINDS.SPIN ~= Enum.KeyCode.Unknown then
             Enabled.SpinBot = not Enabled.SpinBot
             if VisualSetters.SpinBot then VisualSetters.SpinBot(Enabled.SpinBot) end
             if Enabled.SpinBot then startSpinBot() else stopSpinBot() end
         end
         
-        if input.KeyCode == KEYBINDS.GALAXY then
+        if input.KeyCode == KEYBINDS.GALAXY and KEYBINDS.GALAXY ~= Enum.KeyCode.Unknown then
             Enabled.Galaxy = not Enabled.Galaxy
             if VisualSetters.Galaxy then VisualSetters.Galaxy(Enabled.Galaxy) end
             if Enabled.Galaxy then startGalaxy() else stopGalaxy() end
         end
         
-        if input.KeyCode == KEYBINDS.BATAIMBOT then
+        if input.KeyCode == KEYBINDS.BATAIMBOT and KEYBINDS.BATAIMBOT ~= Enum.KeyCode.Unknown then
             Enabled.BatAimbot = not Enabled.BatAimbot
             if VisualSetters.BatAimbot then VisualSetters.BatAimbot(Enabled.BatAimbot) end
             if Enabled.BatAimbot then startBatAimbot() else stopBatAimbot() end
         end
         
-        if input.KeyCode == KEYBINDS.NUKE then
+        if input.KeyCode == KEYBINDS.NUKE and KEYBINDS.NUKE ~= Enum.KeyCode.Unknown then
             local n = getNearestPlayer()
             if n then INSTANT_NUKE(n) end
         end
         
-        if input.KeyCode == KEYBINDS.AUTOLEFT then
+        if input.KeyCode == KEYBINDS.AUTOLEFT and KEYBINDS.AUTOLEFT ~= Enum.KeyCode.Unknown then
             AutoWalkEnabled = not AutoWalkEnabled
             Enabled.AutoWalkEnabled = AutoWalkEnabled
             if VisualSetters.AutoWalkEnabled then VisualSetters.AutoWalkEnabled(AutoWalkEnabled) end
             if AutoWalkEnabled then startAutoWalk() else stopAutoWalk() end
         end
         
-        if input.KeyCode == KEYBINDS.AUTORIGHT then
+        if input.KeyCode == KEYBINDS.AUTORIGHT and KEYBINDS.AUTORIGHT ~= Enum.KeyCode.Unknown then
             AutoRightEnabled = not AutoRightEnabled
             Enabled.AutoRightEnabled = AutoRightEnabled
             if VisualSetters.AutoRightEnabled then VisualSetters.AutoRightEnabled(AutoRightEnabled) end
             if AutoRightEnabled then startAutoRight() else stopAutoRight() end
         end
         
-        if input.KeyCode == KEYBINDS.INFINITEJUMP then
+        if input.KeyCode == KEYBINDS.INFINITEJUMP and KEYBINDS.INFINITEJUMP ~= Enum.KeyCode.Unknown then
             Enabled.InfiniteJump = not Enabled.InfiniteJump
             if VisualSetters.InfiniteJump then VisualSetters.InfiniteJump(Enabled.InfiniteJump) end
             if Enabled.InfiniteJump then startInfiniteJump() else stopInfiniteJump() end
         end
         
-        if input.KeyCode == KEYBINDS.FLOAT then
+        if input.KeyCode == KEYBINDS.FLOAT and KEYBINDS.FLOAT ~= Enum.KeyCode.Unknown then
             Enabled.Float = not Enabled.Float
             if VisualSetters.Float then VisualSetters.Float(Enabled.Float) end
             if Enabled.Float then startFloat() else stopFloat() end
         end
         
-        if input.KeyCode == KEYBINDS.FOV then
+        if input.KeyCode == KEYBINDS.FOV and KEYBINDS.FOV ~= Enum.KeyCode.Unknown then
             Enabled.FOVChanger = not Enabled.FOVChanger
             if VisualSetters.FOVChanger then VisualSetters.FOVChanger(Enabled.FOVChanger) end
             if Enabled.FOVChanger then startFOVChanger() else stopFOVChanger() end
