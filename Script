@@ -52,7 +52,8 @@ local Enabled = {
     AutoWalkEnabled = false,
     AutoRightEnabled = false,
     ScriptUserESP = true,
-    InfiniteJump = false -- New Infinite Jump toggle
+    InfiniteJump = false,
+    Float = false -- New Float toggle
 }
 
 local Values = {
@@ -64,7 +65,9 @@ local Values = {
     DEFAULT_GRAVITY = 196.2,
     GalaxyGravityPercent = 70,
     HOP_POWER = 35,
-    HOP_COOLDOWN = 0.08
+    HOP_COOLDOWN = 0.08,
+    FloatHeight = 15, -- Height to float at
+    FloatSpeed = 0.5 -- Speed of floating movement
 }
 
 local KEYBINDS = {
@@ -75,7 +78,8 @@ local KEYBINDS = {
     NUKE = Enum.KeyCode.Q,
     AUTOLEFT = Enum.KeyCode.Z,
     AUTORIGHT = Enum.KeyCode.C,
-    INFINITEJUMP = Enum.KeyCode.J -- Keybind for Infinite Jump
+    INFINITEJUMP = Enum.KeyCode.J,
+    FLOAT = Enum.KeyCode.K -- Keybind for Float
 }
 
 -- Load Config FIRST before anything else
@@ -101,6 +105,7 @@ pcall(function()
             if data.KEY_AUTOLEFT then KEYBINDS.AUTOLEFT = Enum.KeyCode[data.KEY_AUTOLEFT] end
             if data.KEY_AUTORIGHT then KEYBINDS.AUTORIGHT = Enum.KeyCode[data.KEY_AUTORIGHT] end
             if data.KEY_INFINITEJUMP then KEYBINDS.INFINITEJUMP = Enum.KeyCode[data.KEY_INFINITEJUMP] end
+            if data.KEY_FLOAT then KEYBINDS.FLOAT = Enum.KeyCode[data.KEY_FLOAT] end
             configLoaded = true
         end
     end
@@ -122,6 +127,7 @@ local function SaveConfig()
     data.KEY_AUTOLEFT = KEYBINDS.AUTOLEFT.Name
     data.KEY_AUTORIGHT = KEYBINDS.AUTORIGHT.Name
     data.KEY_INFINITEJUMP = KEYBINDS.INFINITEJUMP.Name
+    data.KEY_FLOAT = KEYBINDS.FLOAT.Name
     
     local success = false
     if writefile then
@@ -259,6 +265,127 @@ local function stopSpinBot()
 end
 
 -- ================================================================
+-- FLOAT MODE - Makes you hover in the air
+-- ================================================================
+local floatConnection = nil
+local floatTargetHeight = 0
+local floatEnabled = false
+
+local function startFloat()
+    if floatConnection then return end
+    
+    floatEnabled = true
+    
+    floatConnection = RunService.Heartbeat:Connect(function()
+        if not Enabled.Float then return end
+        
+        local c = Player.Character
+        if not c then return end
+        
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        local hum = c:FindFirstChildOfClass("Humanoid")
+        
+        if not hrp or not hum then return end
+        if hum.Health <= 0 then return end
+        
+        -- Get the ground position below the player
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+        raycastParams.FilterDescendantsInstances = {c}
+        
+        local rayOrigin = hrp.Position
+        local rayDirection = Vector3.new(0, -100, 0)
+        
+        local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+        
+        if rayResult then
+            -- Set target height to float above ground
+            floatTargetHeight = rayResult.Position.Y + Values.FloatHeight
+        else
+            -- If no ground found, float at current height + offset
+            floatTargetHeight = hrp.Position.Y
+        end
+        
+        -- Smoothly move player to float height
+        local currentY = hrp.Position.Y
+        local diff = floatTargetHeight - currentY
+        
+        -- Apply force to maintain height
+        if math.abs(diff) > 0.5 then
+            -- Move towards target height
+            local velocity = hrp.AssemblyLinearVelocity
+            local newYVelocity = diff * Values.FloatSpeed * 10
+            hrp.AssemblyLinearVelocity = Vector3.new(velocity.X, newYVelocity, velocity.Z)
+        else
+            -- Hold position with slight damping
+            local velocity = hrp.AssemblyLinearVelocity
+            hrp.AssemblyLinearVelocity = Vector3.new(velocity.X, velocity.Y * 0.9, velocity.Z)
+        end
+        
+        -- Disable gravity effect while floating
+        if hrp:FindFirstChild("FloatBodyGyro") then return end
+        
+        -- Add body gyro to stabilize orientation
+        local bg = Instance.new("BodyGyro")
+        bg.Name = "FloatBodyGyro"
+        bg.MaxTorque = Vector3.new(0, 0, 0) -- Don't affect rotation
+        bg.Parent = hrp
+        
+        -- Add body position for stability
+        local bp = Instance.new("BodyPosition")
+        bp.Name = "FloatBodyPosition"
+        bp.MaxForce = Vector3.new(0, 4000, 0) -- Only vertical force
+        bp.P = 1000
+        bp.D = 50
+        bp.Position = hrp.Position
+        bp.Parent = hrp
+        
+        -- Clean up old instances
+        task.delay(0.1, function()
+            if hrp and hrp:FindFirstChild("FloatBodyGyro") then
+                hrp.FloatBodyGyro:Destroy()
+            end
+            if hrp and hrp:FindFirstChild("FloatBodyPosition") then
+                hrp.FloatBodyPosition:Destroy()
+            end
+        end)
+    end)
+    
+    -- Add a visual effect (optional)
+    task.spawn(function()
+        while Enabled.Float do
+            local c = Player.Character
+            if c and c:FindFirstChild("HumanoidRootPart") then
+                local hrp = c.HumanoidRootPart
+                -- Create a subtle particle effect (commented out to avoid lag)
+                -- Can be enabled if desired
+            end
+            task.wait(0.1)
+        end
+    end)
+end
+
+local function stopFloat()
+    floatEnabled = false
+    if floatConnection then
+        floatConnection:Disconnect()
+        floatConnection = nil
+    end
+    
+    -- Clean up any leftover body movers
+    local c = Player.Character
+    if c and c:FindFirstChild("HumanoidRootPart") then
+        local hrp = c.HumanoidRootPart
+        if hrp:FindFirstChild("FloatBodyGyro") then
+            hrp.FloatBodyGyro:Destroy()
+        end
+        if hrp:FindFirstChild("FloatBodyPosition") then
+            hrp.FloatBodyPosition:Destroy()
+        end
+    end
+end
+
+-- ================================================================
 -- PERFECT INFINITE JUMP - GOOD HEIGHT, NO RESETS
 -- ================================================================
 local infiniteJumpConnection = nil
@@ -266,6 +393,8 @@ local lastJumpTime = 0
 local JUMP_COOLDOWN = 0.2 -- Good balance between responsiveness and safety
 local jumpCount = 0
 local maxJumpsBeforeReset = 30 -- Higher limit for longer air time
+local jumpPressed = false
+local spaceHeld = false
 
 local function startInfiniteJump()
     if infiniteJumpConnection then return end
@@ -297,7 +426,7 @@ local function startInfiniteJump()
                 return
             end
             
-            -- GOOD JUMP HEIGHT - 50 is standard jump power
+            -- GOOD JUMP HEIGHT - 52 is slightly higher than normal
             -- Only apply when in air OR on ground (allows both)
             if hum.FloorMaterial == Enum.Material.Air then
                 -- In air: give a solid boost
@@ -306,20 +435,6 @@ local function startInfiniteJump()
                 -- On ground: do normal jump through humanoid (safer)
                 hum:ChangeState(Enum.HumanoidStateType.Jumping)
             end
-            
-            -- Visual feedback - small effect to show it's working
-            pcall(function()
-                -- Optional: tiny particle for visual feedback (comment out if unwanted)
-                -- local part = Instance.new("Part")
-                -- part.Parent = workspace
-                -- part.Anchored = true
-                -- part.CanCollide = false
-                -- part.Size = Vector3.new(0.5, 0.5, 0.5)
-                -- part.Position = hrp.Position + Vector3.new(0, 3, 0)
-                -- part.BrickColor = BrickColor.new("Bright blue")
-                -- part.Material = Enum.Material.Neon
-                -- game:GetService("Debris"):AddItem(part, 0.2)
-            end)
         end
     end)
     
@@ -367,8 +482,6 @@ end
 
 local AutoWalkEnabled = false
 local AutoRightEnabled = false
-local jumpPressed = false
-local spaceHeld = false
 
 RunService.Heartbeat:Connect(function()
     if Enabled.SpinBot and spinBAV then
@@ -1398,8 +1511,8 @@ Instance.new("UICorner", ProgressBarFill).CornerRadius = UDim.new(1, 0)
 -- Main Window
 local main = Instance.new("Frame", sg)
 main.Name = "Main"
-main.Size = UDim2.new(0, 560 * guiScale, 0, 800 * guiScale)
-main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -400 * guiScale)
+main.Size = UDim2.new(0, 560 * guiScale, 0, 850 * guiScale) -- Increased height for new toggle and sliders
+main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -425 * guiScale)
 main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- White
 main.BorderSizePixel = 0
 main.Active = true
@@ -1555,7 +1668,7 @@ if isMobile then
 end
 
 local leftSide = Instance.new("Frame", main)
-leftSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale)
+leftSide.Size = UDim2.new(0.48, 0, 0, 760 * guiScale) -- Increased height
 leftSide.Position = UDim2.new(0.01, 0, 0, 75 * guiScale)
 leftSide.BackgroundTransparency = 1
 leftSide.BorderSizePixel = 0
@@ -1563,7 +1676,7 @@ leftSide.ClipsDescendants = true
 leftSide.ZIndex = 2
 
 local rightSide = Instance.new("Frame", main)
-rightSide.Size = UDim2.new(0.48, 0, 0, 710 * guiScale)
+rightSide.Size = UDim2.new(0.48, 0, 0, 760 * guiScale) -- Increased height
 rightSide.Position = UDim2.new(0.51, 0, 0, 75 * guiScale)
 rightSide.BackgroundTransparency = 1
 rightSide.BorderSizePixel = 0
@@ -1917,7 +2030,7 @@ createToggle(rightSide, 336, "Optimizer + XRay", "Optimizer", function(s)
     if s then enableOptimizer() else disableOptimizer() end
 end)
 
--- New Infinite Jump Toggle (on the right side)
+-- Infinite Jump Toggle
 createToggleWithKey(rightSide, 388, "Infinite Jump", "INFINITEJUMP", "InfiniteJump", function(s)
     Enabled.InfiniteJump = s
     if s then 
@@ -1927,14 +2040,34 @@ createToggleWithKey(rightSide, 388, "Infinite Jump", "INFINITEJUMP", "InfiniteJu
     end
 end, Color3.fromRGB(100, 200, 255))
 
-createToggleWithKey(rightSide, 440, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
+-- FLOAT TOGGLE - NEW!
+createToggleWithKey(rightSide, 440, "Float Mode", "FLOAT", "Float", function(s)
+    Enabled.Float = s
+    if s then 
+        startFloat() 
+    else 
+        stopFloat() 
+    end
+end, Color3.fromRGB(150, 100, 255)) -- Purple color for float
+
+-- Float Height Slider
+createSlider(rightSide, 492, "Float Height", 5, 30, "FloatHeight", function(v) 
+    Values.FloatHeight = v 
+end)
+
+-- Float Speed Slider
+createSlider(rightSide, 552, "Float Speed", 0.2, 1.5, "FloatSpeed", function(v) 
+    Values.FloatSpeed = v 
+end)
+
+createToggleWithKey(rightSide, 612, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
     AutoWalkEnabled = s
     Enabled.AutoWalkEnabled = s
     if s then startAutoWalk() else stopAutoWalk() end
 end, Color3.fromRGB(100, 150, 255))
 _G.setAutoLeftVisual = VisualSetters.AutoWalkEnabled
 
-createToggleWithKey(rightSide, 492, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
+createToggleWithKey(rightSide, 664, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
     AutoRightEnabled = s
     Enabled.AutoRightEnabled = s
     if s then startAutoRight() else stopAutoRight() end
@@ -1944,7 +2077,7 @@ _G.setAutoRightVisual = VisualSetters.AutoRightEnabled
 -- Save Button
 local SaveBtn = Instance.new("TextButton", rightSide)
 SaveBtn.Size = UDim2.new(1, -10 * guiScale, 0, 50 * guiScale)
-SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 555 * guiScale)
+SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 727 * guiScale) -- Adjusted position
 SaveBtn.BackgroundColor3 = C.purple
 SaveBtn.Text = "SAVE CONFIG"
 SaveBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -1970,9 +2103,9 @@ end)
 
 local infoLabel = Instance.new("TextLabel", leftSide)
 infoLabel.Size = UDim2.new(1, 0, 0, 40 * guiScale)
-infoLabel.Position = UDim2.new(0, 0, 0, 660 * guiScale)
+infoLabel.Position = UDim2.new(0, 0, 0, 710 * guiScale) -- Adjusted position
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
+infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
 infoLabel.TextColor3 = C.textDim
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9 * guiScale
@@ -2014,6 +2147,7 @@ task.spawn(function()
     if Enabled.Optimizer then enableOptimizer() end
     if Enabled.GalaxySkyBright then enableGalaxySkyBright() end
     if Enabled.InfiniteJump then startInfiniteJump() end
+    if Enabled.Float then startFloat() end
     
     task.wait(0.5)
     
@@ -2122,6 +2256,12 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         if VisualSetters.InfiniteJump then VisualSetters.InfiniteJump(Enabled.InfiniteJump) end
         if Enabled.InfiniteJump then startInfiniteJump() else stopInfiniteJump() end
     end
+    
+    if input.KeyCode == KEYBINDS.FLOAT then
+        Enabled.Float = not Enabled.Float
+        if VisualSetters.Float then VisualSetters.Float(Enabled.Float) end
+        if Enabled.Float then startFloat() else stopFloat() end
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
@@ -2138,5 +2278,10 @@ Player.CharacterAdded:Connect(function()
     if Enabled.SpamBat then stopSpamBat() task.wait(0.1) startSpamBat() end
     if Enabled.BatAimbot then stopBatAimbot() task.wait(0.1) startBatAimbot() end
     if Enabled.Unwalk then startUnwalk() end
+    if Enabled.Float then 
+        stopFloat()
+        task.wait(0.1)
+        startFloat()
+    end
     -- Infinite Jump automatically works on respawn through the connection
 end)
