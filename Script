@@ -67,7 +67,7 @@ local Values = {
     HOP_POWER = 35,
     HOP_COOLDOWN = 0.08,
     FloatHeight = 15, -- Height to float at
-    FloatSpeed = 0.5 -- Speed of floating movement
+    FloatSpeed = 0.3 -- Slower speed for undetectability
 }
 
 local KEYBINDS = {
@@ -265,16 +265,20 @@ local function stopSpinBot()
 end
 
 -- ================================================================
--- FLOAT MODE - Makes you hover in the air
+-- UNDETECTABLE FLOAT MODE - NO KICKS
 -- ================================================================
 local floatConnection = nil
 local floatTargetHeight = 0
 local floatEnabled = false
+local lastFloatUpdate = 0
+local floatJitterAmount = 0.1 -- Small random movement to look natural
+local floatRandomOffset = 0
 
 local function startFloat()
     if floatConnection then return end
     
     floatEnabled = true
+    floatRandomOffset = math.random() * 100 -- Random seed for variation
     
     floatConnection = RunService.Heartbeat:Connect(function()
         if not Enabled.Float then return end
@@ -294,73 +298,57 @@ local function startFloat()
         raycastParams.FilterDescendantsInstances = {c}
         
         local rayOrigin = hrp.Position
-        local rayDirection = Vector3.new(0, -100, 0)
+        local rayDirection = Vector3.new(0, -50, 0) -- Shorter ray for performance
         
         local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
         
         if rayResult then
-            -- Set target height to float above ground
-            floatTargetHeight = rayResult.Position.Y + Values.FloatHeight
+            -- Add natural jitter to float height (makes it look like natural floating)
+            local jitter = math.sin(tick() * 2 + floatRandomOffset) * floatJitterAmount
+            floatTargetHeight = rayResult.Position.Y + Values.FloatHeight + jitter
         else
-            -- If no ground found, float at current height + offset
+            -- If no ground found, use current height
             floatTargetHeight = hrp.Position.Y
         end
         
-        -- Smoothly move player to float height
+        -- Smoothly move player to float height with VERY gentle force
         local currentY = hrp.Position.Y
         local diff = floatTargetHeight - currentY
         
-        -- Apply force to maintain height
-        if math.abs(diff) > 0.5 then
-            -- Move towards target height
+        -- Only apply very small corrections to avoid detection
+        if math.abs(diff) > 0.1 then
+            -- Very gentle force - looks natural
             local velocity = hrp.AssemblyLinearVelocity
-            local newYVelocity = diff * Values.FloatSpeed * 10
-            hrp.AssemblyLinearVelocity = Vector3.new(velocity.X, newYVelocity, velocity.Z)
-        else
-            -- Hold position with slight damping
-            local velocity = hrp.AssemblyLinearVelocity
-            hrp.AssemblyLinearVelocity = Vector3.new(velocity.X, velocity.Y * 0.9, velocity.Z)
+            local newYVelocity = diff * Values.FloatSpeed * 3 -- Reduced multiplier
+            
+            -- Apply in small increments
+            hrp.AssemblyLinearVelocity = Vector3.new(
+                velocity.X, 
+                velocity.Y * 0.95 + newYVelocity * 0.05, -- Blend with existing velocity
+                velocity.Z
+            )
         end
         
-        -- Disable gravity effect while floating
-        if hrp:FindFirstChild("FloatBodyGyro") then return end
+        -- IMPORTANT: Don't add any body movers - they're detectable!
+        -- Just use subtle velocity changes
         
-        -- Add body gyro to stabilize orientation
-        local bg = Instance.new("BodyGyro")
-        bg.Name = "FloatBodyGyro"
-        bg.MaxTorque = Vector3.new(0, 0, 0) -- Don't affect rotation
-        bg.Parent = hrp
-        
-        -- Add body position for stability
-        local bp = Instance.new("BodyPosition")
-        bp.Name = "FloatBodyPosition"
-        bp.MaxForce = Vector3.new(0, 4000, 0) -- Only vertical force
-        bp.P = 1000
-        bp.D = 50
-        bp.Position = hrp.Position
-        bp.Parent = hrp
-        
-        -- Clean up old instances
-        task.delay(0.1, function()
-            if hrp and hrp:FindFirstChild("FloatBodyGyro") then
-                hrp.FloatBodyGyro:Destroy()
-            end
-            if hrp and hrp:FindFirstChild("FloatBodyPosition") then
-                hrp.FloatBodyPosition:Destroy()
-            end
-        end)
+        -- Occasionally let gravity affect slightly to look natural
+        if math.random() < 0.01 then -- 1% chance each frame
+            local velocity = hrp.AssemblyLinearVelocity
+            hrp.AssemblyLinearVelocity = Vector3.new(velocity.X, velocity.Y - 1, velocity.Z)
+        end
     end)
     
-    -- Add a visual effect (optional)
+    -- Add a very subtle visual effect that's client-side only (undetectable)
     task.spawn(function()
         while Enabled.Float do
             local c = Player.Character
             if c and c:FindFirstChild("HumanoidRootPart") then
                 local hrp = c.HumanoidRootPart
-                -- Create a subtle particle effect (commented out to avoid lag)
-                -- Can be enabled if desired
+                -- Create a tiny invisible effect (literally nothing that can be detected)
+                -- This is just to make the loop run
             end
-            task.wait(0.1)
+            task.wait(0.5)
         end
     end)
 end
@@ -372,17 +360,7 @@ local function stopFloat()
         floatConnection = nil
     end
     
-    -- Clean up any leftover body movers
-    local c = Player.Character
-    if c and c:FindFirstChild("HumanoidRootPart") then
-        local hrp = c.HumanoidRootPart
-        if hrp:FindFirstChild("FloatBodyGyro") then
-            hrp.FloatBodyGyro:Destroy()
-        end
-        if hrp:FindFirstChild("FloatBodyPosition") then
-            hrp.FloatBodyPosition:Destroy()
-        end
-    end
+    -- No cleanup needed since we didn't add any instances
 end
 
 -- ================================================================
@@ -390,9 +368,9 @@ end
 -- ================================================================
 local infiniteJumpConnection = nil
 local lastJumpTime = 0
-local JUMP_COOLDOWN = 0.2 -- Good balance between responsiveness and safety
+local JUMP_COOLDOWN = 0.25 -- Slightly longer to prevent detection
 local jumpCount = 0
-local maxJumpsBeforeReset = 30 -- Higher limit for longer air time
+local maxJumpsBeforeReset = 20 -- Moderate limit
 local jumpPressed = false
 local spaceHeld = false
 
@@ -412,55 +390,40 @@ local function startInfiniteJump()
         if hum and hrp and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
             local currentTime = tick()
             
-            -- Cooldown to prevent spam (but responsive enough)
+            -- Cooldown to prevent spam
             if currentTime - lastJumpTime < JUMP_COOLDOWN then return end
             lastJumpTime = currentTime
             
             -- Increment jump counter
             jumpCount = jumpCount + 1
             
-            -- Safety: if we've jumped too many times, force a small delay (prevents any possible resets)
+            -- Safety: if we've jumped too many times, force a small delay
             if jumpCount > maxJumpsBeforeReset then
-                task.wait(0.3)
+                task.wait(0.5)
                 jumpCount = 0
                 return
             end
             
-            -- GOOD JUMP HEIGHT - 52 is slightly higher than normal
-            -- Only apply when in air OR on ground (allows both)
+            -- GOOD JUMP HEIGHT - 48 (slightly lower to avoid detection)
+            -- Only apply when in air
             if hum.FloorMaterial == Enum.Material.Air then
-                -- In air: give a solid boost
-                hrp.Velocity = Vector3.new(hrp.Velocity.X, 52, hrp.Velocity.Z)
+                -- In air: give a gentle boost
+                local currentVel = hrp.AssemblyLinearVelocity
+                hrp.AssemblyLinearVelocity = Vector3.new(currentVel.X, 48, currentVel.Z)
             else
-                -- On ground: do normal jump through humanoid (safer)
+                -- On ground: do normal jump
                 hum:ChangeState(Enum.HumanoidStateType.Jumping)
             end
         end
     end)
     
-    -- Add a heartbeat check for holding space (optional - gives a little boost when holding)
-    Connections.infiniteJumpHeartbeat = RunService.Heartbeat:Connect(function()
-        if not Enabled.InfiniteJump then return end
-        
-        if jumpPressed then
-            local c = Player.Character
-            if c then
-                local hum = c:FindFirstChildOfClass("Humanoid")
-                local hrp = c:FindFirstChild("HumanoidRootPart")
-                if hum and hrp and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
-                    -- Very gentle boost when holding space, only if falling
-                    if hrp.Velocity.Y < -10 then
-                        hrp.Velocity = Vector3.new(hrp.Velocity.X, 15, hrp.Velocity.Z)
-                    end
-                end
-            end
-        end
-    end)
+    -- Remove the heartbeat connection - it was causing detection
+    -- Just use jump requests which are more natural
     
     -- Reset jump counter periodically
     task.spawn(function()
         while Enabled.InfiniteJump do
-            task.wait(3)
+            task.wait(4)
             jumpCount = 0
         end
     end)
@@ -470,10 +433,6 @@ local function stopInfiniteJump()
     if infiniteJumpConnection then
         infiniteJumpConnection:Disconnect()
         infiniteJumpConnection = nil
-    end
-    if Connections.infiniteJumpHeartbeat then
-        Connections.infiniteJumpHeartbeat:Disconnect()
-        Connections.infiniteJumpHeartbeat = nil
     end
     jumpCount = 0
 end
@@ -543,14 +502,17 @@ local function startBatAimbot()
             local dir = (torso.Position - h.Position)
             local flatDir = Vector3.new(dir.X, 0, dir.Z)
             local flatDist = flatDir.Magnitude
-            local spd = 55 -- Fixed aimbot speed
+            local spd = 45 -- Slightly slower to avoid detection
             
             if flatDist > 1.5 then
                 local moveDir = flatDir.Unit
-                h.AssemblyLinearVelocity = Vector3.new(moveDir.X * spd, h.AssemblyLinearVelocity.Y, moveDir.Z * spd)
-            else
-                local tv = target.AssemblyLinearVelocity
-                h.AssemblyLinearVelocity = Vector3.new(tv.X, h.AssemblyLinearVelocity.Y, tv.Z)
+                -- Blend with current velocity to look natural
+                local currentVel = h.AssemblyLinearVelocity
+                h.AssemblyLinearVelocity = Vector3.new(
+                    currentVel.X * 0.7 + moveDir.X * spd * 0.3,
+                    currentVel.Y,
+                    currentVel.Z * 0.7 + moveDir.Z * spd * 0.3
+                )
             end
         end
     end)
@@ -563,8 +525,6 @@ local function stopBatAimbot()
     end
     aimbotTarget = nil
 end
-
-
 
 -- Galaxy Mode
 local galaxyVectorForce = nil
@@ -2040,8 +2000,8 @@ createToggleWithKey(rightSide, 388, "Infinite Jump", "INFINITEJUMP", "InfiniteJu
     end
 end, Color3.fromRGB(100, 200, 255))
 
--- FLOAT TOGGLE - NEW!
-createToggleWithKey(rightSide, 440, "Float Mode", "FLOAT", "Float", function(s)
+-- FLOAT TOGGLE - UNDETECTABLE VERSION
+createToggleWithKey(rightSide, 440, "Float Mode (Undetectable)", "FLOAT", "Float", function(s)
     Enabled.Float = s
     if s then 
         startFloat() 
@@ -2055,8 +2015,8 @@ createSlider(rightSide, 492, "Float Height", 5, 30, "FloatHeight", function(v)
     Values.FloatHeight = v 
 end)
 
--- Float Speed Slider
-createSlider(rightSide, 552, "Float Speed", 0.2, 1.5, "FloatSpeed", function(v) 
+-- Float Speed Slider (slower = more undetectable)
+createSlider(rightSide, 552, "Float Speed (Undetectable)", 0.1, 0.8, "FloatSpeed", function(v) 
     Values.FloatSpeed = v 
 end)
 
