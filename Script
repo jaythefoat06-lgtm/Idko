@@ -14,7 +14,23 @@ local SoundService = game:GetService("SoundService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
+local ContextActionService = game:GetService("ContextActionService")
 local Player = Players.LocalPlayer
+
+-- ============================================================
+-- CONTROLLER DETECTION
+-- ============================================================
+local hasController = UserInputService.GamepadEnabled and (#UserInputService:GetGamepadConnected() > 0)
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+-- Monitor for controller connection/disconnection
+UserInputService.GamepadConnected:Connect(function()
+    hasController = true
+end)
+
+UserInputService.GamepadDisconnected:Connect(function()
+    hasController = (#UserInputService:GetGamepadConnected() > 0)
+end)
 
 -- ============================================================
 -- KEY SYSTEM - ENTER KEY: 6789
@@ -269,6 +285,38 @@ function loadMainScript()
         FOV = Enum.KeyCode.L
     }
 
+    -- ============================================================
+    -- CONTROLLER BINDINGS
+    -- ============================================================
+    local CONTROLLER_BINDS = {
+        SPEED = Enum.KeyCode.ButtonX, -- Xbox X button / PS Square
+        SPIN = Enum.KeyCode.ButtonY, -- Xbox Y button / PS Triangle
+        GALAXY = Enum.KeyCode.ButtonB, -- Xbox B button / PS Circle
+        BATAIMBOT = Enum.KeyCode.ButtonA, -- Xbox A button / PS Cross
+        NUKE = Enum.KeyCode.ButtonR2, -- Right trigger
+        AUTOLEFT = Enum.KeyCode.ButtonL1, -- Left bumper
+        AUTORIGHT = Enum.KeyCode.ButtonR1, -- Right bumper
+        INFINITEJUMP = Enum.KeyCode.ButtonL2, -- Left trigger
+        FLOAT = Enum.KeyCode.DPadUp, -- D-pad up
+        FOV = Enum.KeyCode.DPadDown, -- D-pad down
+        MENU = Enum.KeyCode.ButtonStart -- Start button to toggle menu
+    }
+
+    -- Controller binding labels for display
+    local CONTROLLER_LABELS = {
+        SPEED = "X (Square)",
+        SPIN = "Y (Triangle)",
+        GALAXY = "B (Circle)",
+        BATAIMBOT = "A (Cross)",
+        NUKE = "RT/R2",
+        AUTOLEFT = "LB/L1",
+        AUTORIGHT = "RB/R1",
+        INFINITEJUMP = "LT/L2",
+        FLOAT = "DPad Up",
+        FOV = "DPad Down",
+        MENU = "Start"
+    }
+
     -- Load Config
     local configLoaded = false
     pcall(function()
@@ -332,6 +380,115 @@ function loadMainScript()
     local isStealing = false
     local lastBatSwing = 0
     local BAT_SWING_COOLDOWN = 0.12
+
+    -- ================================================================
+    -- CONTROLLER INPUT HANDLER
+    -- ================================================================
+    local function setupControllerBindings()
+        if not hasController then return end
+        
+        -- Speed Boost Toggle
+        ContextActionService:BindAction("SpeedBoostAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                Enabled.SpeedBoost = not Enabled.SpeedBoost
+                if VisualSetters.SpeedBoost then VisualSetters.SpeedBoost(Enabled.SpeedBoost) end
+                if Enabled.SpeedBoost then startSpeedBoost() else stopSpeedBoost() end
+            end
+        end, false, CONTROLLER_BINDS.SPEED)
+        
+        -- Spin Bot Toggle
+        ContextActionService:BindAction("SpinBotAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                Enabled.SpinBot = not Enabled.SpinBot
+                if VisualSetters.SpinBot then VisualSetters.SpinBot(Enabled.SpinBot) end
+                if Enabled.SpinBot then startSpinBot() else stopSpinBot() end
+            end
+        end, false, CONTROLLER_BINDS.SPIN)
+        
+        -- Galaxy Mode Toggle
+        ContextActionService:BindAction("GalaxyAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                Enabled.Galaxy = not Enabled.Galaxy
+                if VisualSetters.Galaxy then VisualSetters.Galaxy(Enabled.Galaxy) end
+                if Enabled.Galaxy then startGalaxy() else stopGalaxy() end
+            end
+        end, false, CONTROLLER_BINDS.GALAXY)
+        
+        -- Bat Aimbot Toggle
+        ContextActionService:BindAction("BatAimbotAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                Enabled.BatAimbot = not Enabled.BatAimbot
+                if VisualSetters.BatAimbot then VisualSetters.BatAimbot(Enabled.BatAimbot) end
+                if Enabled.BatAimbot then startBatAimbot() else stopBatAimbot() end
+            end
+        end, false, CONTROLLER_BINDS.BATAIMBOT)
+        
+        -- NUKE Action
+        ContextActionService:BindAction("NukeAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                local n = getNearestPlayer()
+                if n then INSTANT_NUKE(n) end
+            end
+        end, false, CONTROLLER_BINDS.NUKE)
+        
+        -- Auto Left Toggle
+        ContextActionService:BindAction("AutoLeftAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                AutoWalkEnabled = not AutoWalkEnabled
+                Enabled.AutoWalkEnabled = AutoWalkEnabled
+                if VisualSetters.AutoWalkEnabled then VisualSetters.AutoWalkEnabled(AutoWalkEnabled) end
+                if AutoWalkEnabled then startAutoWalk() else stopAutoWalk() end
+            end
+        end, false, CONTROLLER_BINDS.AUTOLEFT)
+        
+        -- Auto Right Toggle
+        ContextActionService:BindAction("AutoRightAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                AutoRightEnabled = not AutoRightEnabled
+                Enabled.AutoRightEnabled = AutoRightEnabled
+                if VisualSetters.AutoRightEnabled then VisualSetters.AutoRightEnabled(AutoRightEnabled) end
+                if AutoRightEnabled then startAutoRight() else stopAutoRight() end
+            end
+        end, false, CONTROLLER_BINDS.AUTORIGHT)
+        
+        -- Infinite Jump Toggle
+        ContextActionService:BindAction("InfiniteJumpAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                Enabled.InfiniteJump = not Enabled.InfiniteJump
+                if VisualSetters.InfiniteJump then VisualSetters.InfiniteJump(Enabled.InfiniteJump) end
+                if Enabled.InfiniteJump then startInfiniteJump() else stopInfiniteJump() end
+            end
+        end, false, CONTROLLER_BINDS.INFINITEJUMP)
+        
+        -- Float Toggle
+        ContextActionService:BindAction("FloatAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                Enabled.Float = not Enabled.Float
+                if VisualSetters.Float then VisualSetters.Float(Enabled.Float) end
+                if Enabled.Float then startFloat() else stopFloat() end
+            end
+        end, false, CONTROLLER_BINDS.FLOAT)
+        
+        -- FOV Toggle
+        ContextActionService:BindAction("FOVAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                Enabled.FOVChanger = not Enabled.FOVChanger
+                if VisualSetters.FOVChanger then VisualSetters.FOVChanger(Enabled.FOVChanger) end
+                if Enabled.FOVChanger then startFOVChanger() else stopFOVChanger() end
+            end
+        end, false, CONTROLLER_BINDS.FOV)
+        
+        -- Menu Toggle (Start button)
+        ContextActionService:BindAction("MenuToggleAction", function(actionName, inputState, inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                guiVisible = not guiVisible
+                main.Visible = guiVisible
+                if isMobile and mobileMinimizeBtn then
+                    mobileMinimizeBtn.Text = guiVisible and "−" or "+"
+                end
+            end
+        end, false, CONTROLLER_BINDS.MENU)
+    end
 
     -- ================================================================
     -- FOV CHANGER
@@ -1856,7 +2013,14 @@ function loadMainScript()
         keyBtn.Size = UDim2.new(0, 36 * guiScale, 0, 28 * guiScale)
         keyBtn.Position = UDim2.new(0, 3 * guiScale, 0.5, -14 * guiScale)
         keyBtn.BackgroundColor3 = C.purple
-        keyBtn.Text = KEYBINDS[keybindKey].Name
+        
+        -- Show controller button if connected, otherwise keyboard key
+        if hasController and CONTROLLER_LABELS[keybindKey] then
+            keyBtn.Text = CONTROLLER_LABELS[keybindKey]
+        else
+            keyBtn.Text = KEYBINDS[keybindKey].Name
+        end
+        
         keyBtn.TextColor3 = Color3.new(1, 1, 1)
         keyBtn.Font = Enum.Font.GothamBold
         keyBtn.TextSize = 11 * guiScale
@@ -2112,7 +2276,7 @@ function loadMainScript()
     end
 
     -- ============================================
-    -- LEFT SIDE - FEATURES (BALANCED)
+    -- LEFT SIDE - FEATURES
     -- ============================================
     local leftY = 0
     
@@ -2184,7 +2348,7 @@ function loadMainScript()
     leftY = leftY + 52
 
     -- ============================================
-    -- RIGHT SIDE - FEATURES (BALANCED)
+    -- RIGHT SIDE - FEATURES
     -- ============================================
     local rightY = 0
 
@@ -2330,11 +2494,51 @@ function loadMainScript()
     infoLabel.Size = UDim2.new(1, 0, 0, 40 * guiScale)
     infoLabel.Position = UDim2.new(0, 0, 0, leftY)
     infoLabel.BackgroundTransparency = 1
-    infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float | L=FOV\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
+    
+    -- Show controller controls if connected
+    if hasController then
+        infoLabel.Text = "X=Speed | Y=Spin | B=Galaxy | A=Aimbot | LT=InfJump | DUp=Float | DDown=FOV\nLB=AutoLeft | RB=AutoRight | RT=Nuke | Start=Menu"
+    else
+        infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float | L=FOV\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
+    end
+    
     infoLabel.TextColor3 = C.textDim
     infoLabel.Font = Enum.Font.Gotham
     infoLabel.TextSize = 9 * guiScale
     infoLabel.ZIndex = 3
+
+    -- Setup controller bindings if controller is connected
+    if hasController then
+        setupControllerBindings()
+    end
+
+    -- Monitor for controller connection changes
+    UserInputService.GamepadConnected:Connect(function()
+        hasController = true
+        setupControllerBindings()
+        -- Update button labels
+        for key, btn in pairs(KeyButtons) do
+            if btn and CONTROLLER_LABELS[key] then
+                btn.Text = CONTROLLER_LABELS[key]
+            end
+        end
+        -- Update info label
+        infoLabel.Text = "X=Speed | Y=Spin | B=Galaxy | A=Aimbot | LT=InfJump | DUp=Float | DDown=FOV\nLB=AutoLeft | RB=AutoRight | RT=Nuke | Start=Menu"
+    end)
+
+    UserInputService.GamepadDisconnected:Connect(function()
+        hasController = (#UserInputService:GetGamepadConnected() > 0)
+        if not hasController then
+            -- Revert to keyboard labels
+            for key, btn in pairs(KeyButtons) do
+                if btn and KEYBINDS[key] then
+                    btn.Text = KEYBINDS[key].Name
+                end
+            end
+            -- Update info label
+            infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float | L=FOV\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
+        end
+    end)
 
     -- Apply loaded config
     task.spawn(function()
@@ -2347,8 +2551,12 @@ function loadMainScript()
         end
         
         for key, btn in pairs(KeyButtons) do
-            if btn and KEYBINDS[key] then
-                btn.Text = KEYBINDS[key].Name
+            if btn then
+                if hasController and CONTROLLER_LABELS[key] then
+                    btn.Text = CONTROLLER_LABELS[key]
+                elseif KEYBINDS[key] then
+                    btn.Text = KEYBINDS[key].Name
+                end
             end
         end
         
@@ -2387,7 +2595,7 @@ function loadMainScript()
         if configLoaded then end
     end)
 
-    -- Input handling
+    -- Input handling (keep keyboard support)
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         
