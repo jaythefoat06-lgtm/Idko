@@ -17,9 +17,9 @@ local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 
 -- ============================================================
--- KEY SYSTEM - ENTER KEY: 12345
+-- KEY SYSTEM - ENTER KEY: 6789
 -- ============================================================
-local CORRECT_KEY = "12345"
+local CORRECT_KEY = "6789"
 local keyAttempts = 0
 local maxAttempts = 5
 local keyAuthorized = false
@@ -237,7 +237,8 @@ function loadMainScript()
         AutoRightEnabled = false,
         ScriptUserESP = true,
         InfiniteJump = false,
-        Float = false
+        Float = false,
+        FOVChanger = false -- New FOV Changer toggle
     }
 
     local Values = {
@@ -251,7 +252,8 @@ function loadMainScript()
         HOP_POWER = 35,
         HOP_COOLDOWN = 0.08,
         FloatHeight = 15,
-        FloatStrength = 0.5
+        FloatStrength = 0.5,
+        FOVValue = 90 -- Default FOV (70-120 range)
     }
 
     local KEYBINDS = {
@@ -263,7 +265,8 @@ function loadMainScript()
         AUTOLEFT = Enum.KeyCode.Z,
         AUTORIGHT = Enum.KeyCode.C,
         INFINITEJUMP = Enum.KeyCode.J,
-        FLOAT = Enum.KeyCode.K
+        FLOAT = Enum.KeyCode.K,
+        FOV = Enum.KeyCode.L -- Keybind for FOV toggle
     }
 
     -- Load Config
@@ -290,6 +293,7 @@ function loadMainScript()
                 if data.KEY_AUTORIGHT then KEYBINDS.AUTORIGHT = Enum.KeyCode[data.KEY_AUTORIGHT] end
                 if data.KEY_INFINITEJUMP then KEYBINDS.INFINITEJUMP = Enum.KeyCode[data.KEY_INFINITEJUMP] end
                 if data.KEY_FLOAT then KEYBINDS.FLOAT = Enum.KeyCode[data.KEY_FLOAT] end
+                if data.KEY_FOV then KEYBINDS.FOV = Enum.KeyCode[data.KEY_FOV] end
                 configLoaded = true
             end
         end
@@ -312,6 +316,7 @@ function loadMainScript()
         data.KEY_AUTORIGHT = KEYBINDS.AUTORIGHT.Name
         data.KEY_INFINITEJUMP = KEYBINDS.INFINITEJUMP.Name
         data.KEY_FLOAT = KEYBINDS.FLOAT.Name
+        data.KEY_FOV = KEYBINDS.FOV.Name
         
         local success = false
         if writefile then
@@ -327,6 +332,68 @@ function loadMainScript()
     local isStealing = false
     local lastBatSwing = 0
     local BAT_SWING_COOLDOWN = 0.12
+
+    -- ================================================================
+    -- FOV CHANGER
+    -- ================================================================
+    local fovConnection = nil
+    local originalFOV = 70 -- Default Roblox FOV
+
+    local function startFOVChanger()
+        if fovConnection then return end
+        
+        -- Store original FOV
+        local camera = workspace.CurrentCamera
+        if camera then
+            originalFOV = camera.FieldOfView
+        end
+        
+        fovConnection = RunService.RenderStepped:Connect(function()
+            if not Enabled.FOVChanger then return end
+            
+            local camera = workspace.CurrentCamera
+            if camera then
+                -- Smoothly transition to target FOV
+                local currentFOV = camera.FieldOfView
+                local targetFOV = Values.FOVValue
+                
+                -- Only change if difference is significant
+                if math.abs(currentFOV - targetFOV) > 0.1 then
+                    -- Smooth interpolation
+                    local newFOV = currentFOV + (targetFOV - currentFOV) * 0.3
+                    camera.FieldOfView = newFOV
+                else
+                    camera.FieldOfView = targetFOV
+                end
+            end
+        end)
+    end
+
+    local function stopFOVChanger()
+        if fovConnection then
+            fovConnection:Disconnect()
+            fovConnection = nil
+        end
+        
+        -- Reset to original FOV
+        local camera = workspace.CurrentCamera
+        if camera then
+            camera.FieldOfView = originalFOV
+        end
+    end
+
+    -- Update original FOV when camera changes
+    workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+        task.wait(0.1)
+        if Enabled.FOVChanger then
+            local camera = workspace.CurrentCamera
+            if camera then
+                originalFOV = camera.FieldOfView
+            end
+        end
+    end)
+
+    -- ================================================================
 
     local SlapList = {
         {1, "Bat"}, {2, "Slap"}, {3, "Iron Slap"}, {4, "Gold Slap"},
@@ -589,10 +656,6 @@ function loadMainScript()
         end
         jumpCount = 0
     end
-
-    -- Rest of the functions remain the same...
-    -- (All the other functions like startSpeedBoost, startAntiRagdoll, etc.)
-    -- I'll include them but keep the response manageable
 
     local AutoWalkEnabled = false
     local AutoRightEnabled = false
@@ -1611,8 +1674,8 @@ function loadMainScript()
     -- Main Window
     local main = Instance.new("Frame", sg)
     main.Name = "Main"
-    main.Size = UDim2.new(0, 560 * guiScale, 0, 850 * guiScale)
-    main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -425 * guiScale)
+    main.Size = UDim2.new(0, 560 * guiScale, 0, 900 * guiScale) -- Increased height for FOV slider
+    main.Position = UDim2.new(0.5, -280 * guiScale, 0.5, -450 * guiScale)
     main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     main.BorderSizePixel = 0
     main.Active = true
@@ -1766,7 +1829,7 @@ function loadMainScript()
     end
 
     local leftSide = Instance.new("Frame", main)
-    leftSide.Size = UDim2.new(0.48, 0, 0, 760 * guiScale)
+    leftSide.Size = UDim2.new(0.48, 0, 0, 810 * guiScale) -- Increased height
     leftSide.Position = UDim2.new(0.01, 0, 0, 75 * guiScale)
     leftSide.BackgroundTransparency = 1
     leftSide.BorderSizePixel = 0
@@ -1774,7 +1837,7 @@ function loadMainScript()
     leftSide.ZIndex = 2
 
     local rightSide = Instance.new("Frame", main)
-    rightSide.Size = UDim2.new(0.48, 0, 0, 760 * guiScale)
+    rightSide.Size = UDim2.new(0.48, 0, 0, 810 * guiScale) -- Increased height
     rightSide.Position = UDim2.new(0.51, 0, 0, 75 * guiScale)
     rightSide.BackgroundTransparency = 1
     rightSide.BorderSizePixel = 0
@@ -1786,7 +1849,7 @@ function loadMainScript()
     local KeyButtons = {}
     local waitingForKeybind = nil
 
-    -- Toggle creation functions
+    -- Toggle creation functions (same as before)
     local function createToggleWithKey(parent, yPos, labelText, keybindKey, enabledKey, callback, specialColor)
         local row = Instance.new("Frame", parent)
         row.Size = UDim2.new(1, -10 * guiScale, 0, 48 * guiScale)
@@ -2136,7 +2199,7 @@ function loadMainScript()
         end
     end, Color3.fromRGB(100, 200, 255))
 
-    -- FLOAT TOGGLE - FIXED VERSION
+    -- Float Toggle
     createToggleWithKey(rightSide, 440, "Float Mode", "FLOAT", "Float", function(s)
         Enabled.Float = s
         if s then 
@@ -2156,14 +2219,36 @@ function loadMainScript()
         Values.FloatStrength = v 
     end)
 
-    createToggleWithKey(rightSide, 612, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
+    -- FOV Changer Toggle (NEW)
+    createToggleWithKey(rightSide, 612, "FOV Changer", "FOV", "FOVChanger", function(s)
+        Enabled.FOVChanger = s
+        if s then 
+            startFOVChanger() 
+        else 
+            stopFOVChanger() 
+        end
+    end, Color3.fromRGB(255, 170, 100)) -- Orange color for FOV
+
+    -- FOV Value Slider (NEW)
+    createSlider(rightSide, 664, "FOV Value", 70, 120, "FOVValue", function(v) 
+        Values.FOVValue = v 
+        -- Update immediately if FOV changer is enabled
+        if Enabled.FOVChanger then
+            local camera = workspace.CurrentCamera
+            if camera then
+                camera.FieldOfView = v
+            end
+        end
+    end)
+
+    createToggleWithKey(rightSide, 720, "Auto Left", "AUTOLEFT", "AutoWalkEnabled", function(s)
         AutoWalkEnabled = s
         Enabled.AutoWalkEnabled = s
         if s then startAutoWalk() else stopAutoWalk() end
     end, Color3.fromRGB(100, 150, 255))
     _G.setAutoLeftVisual = VisualSetters.AutoWalkEnabled
 
-    createToggleWithKey(rightSide, 664, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
+    createToggleWithKey(rightSide, 772, "Auto Right", "AUTORIGHT", "AutoRightEnabled", function(s)
         AutoRightEnabled = s
         Enabled.AutoRightEnabled = s
         if s then startAutoRight() else stopAutoRight() end
@@ -2173,7 +2258,7 @@ function loadMainScript()
     -- Save Button
     local SaveBtn = Instance.new("TextButton", rightSide)
     SaveBtn.Size = UDim2.new(1, -10 * guiScale, 0, 50 * guiScale)
-    SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 727 * guiScale)
+    SaveBtn.Position = UDim2.new(0, 5 * guiScale, 0, 835 * guiScale) -- Adjusted position
     SaveBtn.BackgroundColor3 = C.purple
     SaveBtn.Text = "SAVE CONFIG"
     SaveBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -2199,9 +2284,9 @@ function loadMainScript()
 
     local infoLabel = Instance.new("TextLabel", leftSide)
     infoLabel.Size = UDim2.new(1, 0, 0, 40 * guiScale)
-    infoLabel.Position = UDim2.new(0, 0, 0, 710 * guiScale)
+    infoLabel.Position = UDim2.new(0, 0, 0, 760 * guiScale) -- Adjusted position
     infoLabel.BackgroundTransparency = 1
-    infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
+    infoLabel.Text = "V=Speed | N=Spin | M=Galaxy | X=Aimbot | J=InfJump | K=Float | L=FOV\nZ=AutoLeft | C=AutoRight | Q=Nuke | Side Button=Menu"
     infoLabel.TextColor3 = C.textDim
     infoLabel.Font = Enum.Font.Gotham
     infoLabel.TextSize = 9 * guiScale
@@ -2241,6 +2326,7 @@ function loadMainScript()
         if Enabled.GalaxySkyBright then enableGalaxySkyBright() end
         if Enabled.InfiniteJump then startInfiniteJump() end
         if Enabled.Float then startFloat() end
+        if Enabled.FOVChanger then startFOVChanger() end
         
         task.wait(0.5)
         
@@ -2349,6 +2435,12 @@ function loadMainScript()
             if VisualSetters.Float then VisualSetters.Float(Enabled.Float) end
             if Enabled.Float then startFloat() else stopFloat() end
         end
+        
+        if input.KeyCode == KEYBINDS.FOV then
+            Enabled.FOVChanger = not Enabled.FOVChanger
+            if VisualSetters.FOVChanger then VisualSetters.FOVChanger(Enabled.FOVChanger) end
+            if Enabled.FOVChanger then startFOVChanger() else stopFOVChanger() end
+        end
     end)
 
     UserInputService.InputEnded:Connect(function(input)
@@ -2369,6 +2461,11 @@ function loadMainScript()
             stopFloat()
             task.wait(0.1)
             startFloat()
+        end
+        if Enabled.FOVChanger then
+            stopFOVChanger()
+            task.wait(0.1)
+            startFOVChanger()
         end
     end)
 end
