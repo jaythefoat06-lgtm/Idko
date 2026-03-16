@@ -132,56 +132,8 @@ local function stopStealSpeed()
     end
 end
 
--- ========== TP VARIABLES ==========
-local tpFinalLeft  = Vector3.new(-483.59, -5.04, 104.24)
-local tpFinalRight = Vector3.new(-483.51, -5.10, 18.89)
-local tpCheckA     = Vector3.new(-472.60, -7.00, 57.52)
-local tpCheckLeft  = Vector3.new(-472.65, -7.00, 95.69)
-local tpCheckRight = Vector3.new(-471.76, -7.00, 26.22)
-
-local lastTpSide = "none"   -- tracks which side the player last TP'd to
-local ragdollDetectorConn = nil
-local ragdollAutoActive = false
-
-local function tpMove(pos)
-    local char = player.Character
-    if not char then return end
-    char:PivotTo(CFrame.new(pos))
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if hrp then hrp.AssemblyLinearVelocity = Vector3.new(0,0,0) end
-end
-
-local function doTPLeft()
-    tpMove(tpCheckA)
-    task.wait(0.1)
-    tpMove(tpCheckLeft)
-    task.wait(0.1)
-    tpMove(tpFinalLeft)
-    lastTpSide = "left"
-    print("TP Left done")
-end
-
-local function doTPRight()
-    tpMove(tpCheckA)
-    task.wait(0.1)
-    tpMove(tpCheckRight)
-    task.wait(0.1)
-    tpMove(tpFinalRight)
-    lastTpSide = "right"
-    print("TP Right done")
-end
-
-local function isRagdolled(char)
-    if not char then return false end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum and hum:GetState() == Enum.HumanoidStateType.Ragdoll then return true end
-    -- fallback: check for ragdoll state value some games use
-    local ragVal = char:FindFirstChild("Ragdoll") or char:FindFirstChild("IsRagdoll")
-    if ragVal and ragVal:IsA("BoolValue") and ragVal.Value then return true end
-    return false
-end
-
-local ragdollWasActive = false
+-- ========== REMOVED: TP VARIABLES AND FUNCTIONS ==========
+-- All TP-related code has been removed
 
 -- ========== ANTI RAGDOLL ==========
 local antiRagdollActive = false
@@ -200,16 +152,13 @@ local function startAntiRagdoll()
             if state == Enum.HumanoidStateType.Physics
             or state == Enum.HumanoidStateType.Ragdoll
             or state == Enum.HumanoidStateType.FallingDown then
-                -- Let ragdoll TP fire first if it's waiting
-                if not ragdollWasActive then
-                    hum:ChangeState(Enum.HumanoidStateType.Running)
-                    if workspace.CurrentCamera then
-                        workspace.CurrentCamera.CameraSubject = hum
-                    end
-                    if root then
-                        root.Velocity = Vector3.new(0, 0, 0)
-                        root.RotVelocity = Vector3.new(0, 0, 0)
-                    end
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+                if workspace.CurrentCamera then
+                    workspace.CurrentCamera.CameraSubject = hum
+                end
+                if root then
+                    root.Velocity = Vector3.new(0, 0, 0)
+                    root.RotVelocity = Vector3.new(0, 0, 0)
                 end
             end
         end
@@ -254,47 +203,6 @@ local function stopUnwalk()
         unwalkConn:Disconnect()
         unwalkConn = nil
     end
-end
-
-local function startRagdollDetector()
-    if ragdollDetectorConn then ragdollDetectorConn:Disconnect() end
-    ragdollDetectorConn = RunService.Heartbeat:Connect(function()
-        if not ragdollAutoActive then return end
-        local char = player.Character
-        if not char then return end
-        local nowRagdolled = isRagdolled(char)
-        -- detect rising edge: just became ragdolled
-        if nowRagdolled and not ragdollWasActive then
-            ragdollWasActive = true
-            print("Ragdoll detected! Auto-TP + patrol on side:", lastTpSide)
-            task.spawn(function()
-                task.wait(0.15) -- tiny settle wait
-                if lastTpSide == "left" then
-                    doTPLeft()
-                    task.wait(0.2)
-                    if patrolMode ~= "left" then
-                        startMovement("left", buttons["autoleft"])
-                    end
-                elseif lastTpSide == "right" then
-                    doTPRight()
-                    task.wait(0.2)
-                    if patrolMode ~= "right" then
-                        startMovement("right", buttons["autoright"])
-                    end
-                end
-            end)
-        elseif not nowRagdolled then
-            ragdollWasActive = false
-        end
-    end)
-end
-
-local function stopRagdollDetector()
-    if ragdollDetectorConn then
-        ragdollDetectorConn:Disconnect()
-        ragdollDetectorConn = nil
-    end
-    ragdollWasActive = false
 end
 
 -- ========== AUTO STEAL VARIABLES ==========
@@ -494,18 +402,19 @@ local function getCurrentWaypoints()
     return {}
 end
 
+-- ========== CHANGED: Darker button style with more curved edges ==========
 local function updateButtonState(button, isActive, activeText, inactiveText)
     if isActive then
-        -- Make entire button transparent purple
-        button.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-        button.BackgroundTransparency = 0.7
+        -- Dark purple when active
+        button.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+        button.BackgroundTransparency = 0.2
         button:FindFirstChild("StatusDot").BackgroundColor3 = Color3.fromRGB(100, 255, 100)
         button:FindFirstChild("Label").Text = activeText
     else
-        -- Reset to original dark style
-        button.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-        button.BackgroundTransparency = 0.15
-        button:FindFirstChild("StatusDot").BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+        -- Much darker when inactive
+        button.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+        button.BackgroundTransparency = 0
+        button:FindFirstChild("StatusDot").BackgroundColor3 = Color3.fromRGB(40, 40, 50)  -- Darker dot
         button:FindFirstChild("Label").Text = inactiveText
     end
 end
@@ -701,16 +610,6 @@ local function updateWalking()
 
                 root.AssemblyLinearVelocity = Vector3.new(0, root.AssemblyLinearVelocity.Y, 0)
                 print("Path completed")
-
-                if lastTpSide == "left" then
-                    print("Restarting Auto Left (TP side)")
-                    task.spawn(function() startMovement("left", buttons["autoleft"]) end)
-                elseif lastTpSide == "right" then
-                    print("Restarting Auto Right (TP side)")
-                    task.spawn(function() startMovement("right", buttons["autoright"]) end)
-                else
-                    print("No TP side set - stopped")
-                end
             else
                 currentWaypoint = currentWaypoint + 1
                 local speed = getCurrentSpeed()
@@ -750,29 +649,30 @@ local function MakeDraggable(frame)
     end)
 end
 
+-- ========== CHANGED: Darker style with more curved edges ==========
 local function ApplyStyle(obj)
-    obj.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-    obj.BackgroundTransparency = 0.15
+    obj.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+    obj.BackgroundTransparency = 0
     
     local Corner = Instance.new("UICorner", obj)
-    Corner.CornerRadius = UDim.new(0, 4)
+    Corner.CornerRadius = UDim.new(0, 8)  -- More curved edges (increased from 4 to 8)
 
     local Stroke = Instance.new("UIStroke", obj)
     Stroke.Color = Color3.fromRGB(130, 80, 255)
-    Stroke.Thickness = 2
-    Stroke.Transparency = 0.3
+    Stroke.Thickness = 1.5  -- Slightly thinner stroke
+    Stroke.Transparency = 0.4
     
     -- Add pulsing glow animation to outline
     task.spawn(function()
         while Stroke and Stroke.Parent do
             for i = 0, 30 do
                 if not Stroke.Parent then break end
-                Stroke.Transparency = 0.3 - (i * 0.006)
+                Stroke.Transparency = 0.4 - (i * 0.006)
                 task.wait(0.03)
             end
             for i = 0, 30 do
                 if not Stroke.Parent then break end
-                Stroke.Transparency = 0.12 + (i * 0.006)
+                Stroke.Transparency = 0.22 + (i * 0.006)
                 task.wait(0.03)
             end
         end
@@ -791,8 +691,8 @@ MakeDraggable(Title)
 local TitleStroke = Title:FindFirstChildOfClass("UIStroke")
 if TitleStroke then
     TitleStroke.Color = Color3.fromRGB(130, 80, 255)
-    TitleStroke.Thickness = 2
-    TitleStroke.Transparency = 0.3
+    TitleStroke.Thickness = 1.5
+    TitleStroke.Transparency = 0.4
 end
 
 local TText = Instance.new("TextLabel", Title)
@@ -818,13 +718,12 @@ task.spawn(function()
 end)
 
 -- ========== FUNCTIONAL BUTTONS ==========
+-- ========== REMOVED: TP buttons ==========
 local buttonData = {
     {name = "Float", pos = UDim2.new(0.7, 0, 0.3, 0), func = "float"},
     {name = "Bat Aimbot", pos = UDim2.new(0.82, 0, 0.3, 0), func = nil},
     {name = "Auto Left", pos = UDim2.new(0.7, 0, 0.36, 0), func = "autoleft"},
-    {name = "Auto Right", pos = UDim2.new(0.82, 0, 0.36, 0), func = "autoright"},
-    {name = "TP [Left]", pos = UDim2.new(0.7, 0, 0.42, 0), func = nil},
-    {name = "TP [Right]", pos = UDim2.new(0.82, 0, 0.42, 0), func = nil}
+    {name = "Auto Right", pos = UDim2.new(0.82, 0, 0.36, 0), func = "autoright"}
 }
 
 local buttons = {}
@@ -842,7 +741,7 @@ for _, data in pairs(buttonData) do
     dot.Name = "StatusDot"
     dot.Size = UDim2.new(0, 6, 0, 6)
     dot.Position = UDim2.new(0, 8, 0.5, -3)
-    dot.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+    dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)  -- Darker dot
     Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
 
     local lbl = Instance.new("TextLabel", b)
@@ -861,7 +760,7 @@ for _, data in pairs(buttonData) do
     gear.Position = UDim2.new(1, -20, 0, 0)
     gear.Size = UDim2.new(0, 20, 1, 0)
     gear.BackgroundTransparency = 1
-    gear.TextColor3 = Color3.fromRGB(80, 80, 90)
+    gear.TextColor3 = Color3.fromRGB(60, 60, 70)  -- Darker gear icon
     gear.TextSize = 14
 
     buttons[data.func or data.name] = b
@@ -957,37 +856,7 @@ buttons["Bat Aimbot"].MouseButton1Click:Connect(function()
     end
 end)
 
--- TP [Left] Button
-buttons["TP [Left]"].MouseButton1Click:Connect(function()
-    ragdollAutoActive = true
-    updateButtonState(buttons["TP [Left]"], true, "TP [Left] [ON]", "TP [Left]")
-    updateButtonState(buttons["TP [Right]"], false, "", "TP [Right]")
-    startRagdollDetector()
-    task.spawn(function()
-        doTPLeft()
-        task.wait(0.2)
-        if patrolMode ~= "left" then
-            startMovement("left", buttons["autoleft"])
-        end
-    end)
-    print("TP Left activated - ragdoll auto ON")
-end)
-
--- TP [Right] Button
-buttons["TP [Right]"].MouseButton1Click:Connect(function()
-    ragdollAutoActive = true
-    updateButtonState(buttons["TP [Right]"], true, "TP [Right] [ON]", "TP [Right]")
-    updateButtonState(buttons["TP [Left]"], false, "", "TP [Left]")
-    startRagdollDetector()
-    task.spawn(function()
-        doTPRight()
-        task.wait(0.2)
-        if patrolMode ~= "right" then
-            startMovement("right", buttons["autoright"])
-        end
-    end)
-    print("TP Right activated - ragdoll auto ON")
-end)
+-- ========== REMOVED: TP Button functionality ==========
 
 -- ========== SETTINGS MENU PANEL ==========
 local SettingsPanel = Instance.new("Frame", Lib)
@@ -1006,7 +875,7 @@ STitle.Font = Enum.Font.GothamBold
 STitle.TextSize = 14
 
 local SContainer = Instance.new("ScrollingFrame", SettingsPanel)
-SContainer.Size = UDim2.new(1, -20, 1, -120)  -- ========== CHANGED: Reduced height to make room for save button ==========
+SContainer.Size = UDim2.new(1, -20, 1, -120)
 SContainer.Position = UDim2.new(0, 10, 0, 40)
 SContainer.BackgroundTransparency = 1
 SContainer.ScrollBarThickness = 2
@@ -1030,7 +899,7 @@ for _, name in pairs(settingsItems) do
     dot.Name = "StatusDot"
     dot.Size = UDim2.new(0, 8, 0, 8)
     dot.Position = UDim2.new(0, 10, 0.5, -4)
-    dot.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+    dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
 
     local label = Instance.new("TextLabel", item)
@@ -1053,15 +922,15 @@ for _, name in pairs(settingsItems) do
             if not isActive then
                 spinActive = true
                 startSpinBot()
-                item.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-                item.BackgroundTransparency = 0.7
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
                 print("Spin Bot ON")
             else
                 stopSpinBot()
-                item.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-                item.BackgroundTransparency = 0.15
-                dot.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundTransparency = 0
+                dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
                 print("Spin Bot OFF")
             end
         end)
@@ -1074,16 +943,16 @@ for _, name in pairs(settingsItems) do
             if not isActive then
                 antiRagdollActive = true
                 startAntiRagdoll()
-                item.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-                item.BackgroundTransparency = 0.7
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
                 print("Anti Ragdoll ON")
             else
                 antiRagdollActive = false
                 stopAntiRagdoll()
-                item.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-                item.BackgroundTransparency = 0.15
-                dot.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundTransparency = 0
+                dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
                 print("Anti Ragdoll OFF")
             end
         end)
@@ -1096,16 +965,16 @@ for _, name in pairs(settingsItems) do
             if not isActive then
                 unwalkActive = true
                 startUnwalk()
-                item.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-                item.BackgroundTransparency = 0.7
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
                 print("Unwalk ON")
             else
                 unwalkActive = false
                 stopUnwalk()
-                item.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-                item.BackgroundTransparency = 0.15
-                dot.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundTransparency = 0
+                dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
                 print("Unwalk OFF")
             end
         end)
@@ -1118,16 +987,16 @@ for _, name in pairs(settingsItems) do
             if not isActive then
                 stealSpeedActive = true
                 startStealSpeed()
-                item.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-                item.BackgroundTransparency = 0.7
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
                 print("Steal Speed ON (" .. STEAL_SPEED_VALUE .. ")")
             else
                 stealSpeedActive = false
                 stopStealSpeed()
-                item.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-                item.BackgroundTransparency = 0.15
-                dot.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundTransparency = 0
+                dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
                 print("Steal Speed OFF")
             end
         end)
@@ -1139,17 +1008,17 @@ for _, name in pairs(settingsItems) do
             local isActive = dot.BackgroundColor3 == Color3.fromRGB(100, 255, 100)
             if not isActive then
                 stealActive = true
-                item.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-                item.BackgroundTransparency = 0.7
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
                 initSteal()
                 print("Auto Steal ON")
             else
                 stealActive = false
                 stopStealLoop()
-                item.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-                item.BackgroundTransparency = 0.15
-                dot.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundTransparency = 0
+                dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
                 print("Auto Steal OFF")
             end
         end)
@@ -1162,25 +1031,25 @@ for _, name in pairs(settingsItems) do
             
             if not isActive then
                 -- Turn ON
-                item.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-                item.BackgroundTransparency = 0.7
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
                 print("Anti Fling ON (visual only)")
             else
                 -- Turn OFF
-                item.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-                item.BackgroundTransparency = 0.15
-                dot.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundTransparency = 0
+                dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
                 print("Anti Fling OFF")
             end
         end)
     end
 end
 
--- ========== NEW: Save Button added ==========
+-- ========== CHANGED: Save button with working functionality ==========
 local SaveBtn = Instance.new("TextButton", SettingsPanel)
 SaveBtn.Size = UDim2.new(1, -20, 0, 30)
-SaveBtn.Position = UDim2.new(0, 10, 1, -75)  -- Position above Reset button
+SaveBtn.Position = UDim2.new(0, 10, 1, -75)
 SaveBtn.Text = "SAVE SETTINGS"
 SaveBtn.TextColor3 = Color3.new(1, 1, 1)
 SaveBtn.Font = Enum.Font.GothamBold
@@ -1193,7 +1062,7 @@ if SaveStroke then
     SaveStroke.Color = Color3.fromRGB(0, 200, 255)  -- Cyan color
 end
 
--- Save button functionality
+-- Save button functionality - using HttpService to encode settings
 SaveBtn.MouseButton1Click:Connect(function()
     -- Create a table to store current states
     local settingsToSave = {
@@ -1203,24 +1072,25 @@ SaveBtn.MouseButton1Click:Connect(function()
         stealSpeedActive = stealSpeedActive,
         stealActive = stealActive,
         floating = floating,
-        batAimbotActive = batAimbotActive,
-        lastTpSide = lastTpSide,
-        ragdollAutoActive = ragdollAutoActive
+        batAimbotActive = batAimbotActive
     }
     
-    -- Save to a file in the player's app data (works in Roblox Studio)
-    local success, err = pcall(function()
-        writefile("JayysDuels_Settings.txt", game:GetService("HttpService"):JSONEncode(settingsToSave))
+    -- Use HttpService to encode the settings
+    local success, jsonData = pcall(function()
+        return game:GetService("HttpService"):JSONEncode(settingsToSave)
     end)
     
     if success then
-        print("✅ Settings saved successfully!")
+        -- Store in a global variable that persists in the script
+        _G.JayysDuelsSavedSettings = settingsToSave
+        print("✅ Settings saved to memory!")
+        
         -- Visual feedback
         SaveBtn.Text = "SAVED!"
         task.wait(1)
         SaveBtn.Text = "SAVE SETTINGS"
     else
-        print("❌ Failed to save settings:", err)
+        print("❌ Failed to save settings")
         SaveBtn.Text = "FAILED!"
         task.wait(1)
         SaveBtn.Text = "SAVE SETTINGS"
@@ -1253,14 +1123,6 @@ ResetBtn.MouseButton1Click:Connect(function()
     -- Reset Auto Right button
     if buttons["autoright"] then
         buttons["autoright"].Position = UDim2.new(0.82, 0, 0.36, 0)
-    end
-    -- Reset TP [Left] button
-    if buttons["TP [Left]"] then
-        buttons["TP [Left]"].Position = UDim2.new(0.7, 0, 0.42, 0)
-    end
-    -- Reset TP [Right] button
-    if buttons["TP [Right]"] then
-        buttons["TP [Right]"].Position = UDim2.new(0.82, 0, 0.42, 0)
     end
     -- Reset MENU button
     if tauntButtons["MENU"] then
@@ -1313,11 +1175,11 @@ tauntButtons["MENU"].MouseButton1Click:Connect(function()
     
     -- Visual feedback
     if SettingsPanel.Visible then
-        tauntButtons["MENU"].BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-        tauntButtons["MENU"].BackgroundTransparency = 0.7
+        tauntButtons["MENU"].BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+        tauntButtons["MENU"].BackgroundTransparency = 0.2
     else
-        tauntButtons["MENU"].BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-        tauntButtons["MENU"].BackgroundTransparency = 0.15
+        tauntButtons["MENU"].BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+        tauntButtons["MENU"].BackgroundTransparency = 0
     end
 end)
 
@@ -1326,9 +1188,9 @@ tauntButtons["TAUNT"].MouseButton1Click:Connect(function()
     tauntActive = not tauntActive
     
     if tauntActive then
-        -- Make button transparent purple when active
-        tauntButtons["TAUNT"].BackgroundColor3 = Color3.fromRGB(130, 80, 255)
-        tauntButtons["TAUNT"].BackgroundTransparency = 0.7
+        -- Make button darker purple when active
+        tauntButtons["TAUNT"].BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+        tauntButtons["TAUNT"].BackgroundTransparency = 0.2
         
         -- Start spamming loop
         tauntLoop = task.spawn(function()
@@ -1362,9 +1224,9 @@ tauntButtons["TAUNT"].MouseButton1Click:Connect(function()
         
         print("Taunt spam ENABLED")
     else
-        -- Reset button to original style
-        tauntButtons["TAUNT"].BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-        tauntButtons["TAUNT"].BackgroundTransparency = 0.15
+        -- Reset button to original dark style
+        tauntButtons["TAUNT"].BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+        tauntButtons["TAUNT"].BackgroundTransparency = 0
         
         if tauntLoop then
             task.cancel(tauntLoop)
@@ -1395,11 +1257,6 @@ player.CharacterAdded:Connect(function()
     
     -- Stop bat aimbot on respawn
     stopBatAimbot()
-    -- Reset TP state on respawn
-    ragdollAutoActive = false
-    ragdollWasActive = false
-    updateButtonState(buttons["TP [Left]"], false, "", "TP [Left]")
-    updateButtonState(buttons["TP [Right]"], false, "", "TP [Right]")
     -- Restart persistent features if they were active
     if antiRagdollActive then startAntiRagdoll() end
     if unwalkActive then startUnwalk() end
