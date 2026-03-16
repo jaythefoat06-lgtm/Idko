@@ -6,7 +6,8 @@ local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
-Lib.Name = "NineHub_Minimal"
+-- ========== CHANGED: Name updated ==========
+Lib.Name = "JayysDuels_Minimal"
 Lib.Parent = game:GetService("CoreGui")
 Lib.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -779,6 +780,7 @@ local function ApplyStyle(obj)
 end
 
 -- ========== MAIN TITLE ==========
+-- ========== CHANGED: Title text updated ==========
 local Title = Instance.new("Frame", Lib)
 Title.Size = UDim2.new(0, 160, 0, 28)
 Title.Position = UDim2.new(0.5, -80, 0.05, 0)
@@ -796,7 +798,8 @@ end
 local TText = Instance.new("TextLabel", Title)
 TText.Size = UDim2.new(1, 0, 1, 0)
 TText.BackgroundTransparency = 1
-TText.Text = "Nine Hub Duels"
+-- ========== CHANGED: Title text ==========
+TText.Text = "Jayys Duels"
 TText.TextColor3 = Color3.fromRGB(180, 130, 255)
 TText.Font = Enum.Font.GothamBold
 TText.TextSize = 13
@@ -1003,7 +1006,7 @@ STitle.Font = Enum.Font.GothamBold
 STitle.TextSize = 14
 
 local SContainer = Instance.new("ScrollingFrame", SettingsPanel)
-SContainer.Size = UDim2.new(1, -20, 1, -80)
+SContainer.Size = UDim2.new(1, -20, 1, -120)  -- ========== CHANGED: Reduced height to make room for save button ==========
 SContainer.Position = UDim2.new(0, 10, 0, 40)
 SContainer.BackgroundTransparency = 1
 SContainer.ScrollBarThickness = 2
@@ -1174,6 +1177,56 @@ for _, name in pairs(settingsItems) do
     end
 end
 
+-- ========== NEW: Save Button added ==========
+local SaveBtn = Instance.new("TextButton", SettingsPanel)
+SaveBtn.Size = UDim2.new(1, -20, 0, 30)
+SaveBtn.Position = UDim2.new(0, 10, 1, -75)  -- Position above Reset button
+SaveBtn.Text = "SAVE SETTINGS"
+SaveBtn.TextColor3 = Color3.new(1, 1, 1)
+SaveBtn.Font = Enum.Font.GothamBold
+SaveBtn.TextSize = 11
+ApplyStyle(SaveBtn)
+
+-- Make Save button have a different color to stand out
+local SaveStroke = SaveBtn:FindFirstChildOfClass("UIStroke")
+if SaveStroke then
+    SaveStroke.Color = Color3.fromRGB(0, 200, 255)  -- Cyan color
+end
+
+-- Save button functionality
+SaveBtn.MouseButton1Click:Connect(function()
+    -- Create a table to store current states
+    local settingsToSave = {
+        spinActive = spinActive,
+        antiRagdollActive = antiRagdollActive,
+        unwalkActive = unwalkActive,
+        stealSpeedActive = stealSpeedActive,
+        stealActive = stealActive,
+        floating = floating,
+        batAimbotActive = batAimbotActive,
+        lastTpSide = lastTpSide,
+        ragdollAutoActive = ragdollAutoActive
+    }
+    
+    -- Save to a file in the player's app data (works in Roblox Studio)
+    local success, err = pcall(function()
+        writefile("JayysDuels_Settings.txt", game:GetService("HttpService"):JSONEncode(settingsToSave))
+    end)
+    
+    if success then
+        print("✅ Settings saved successfully!")
+        -- Visual feedback
+        SaveBtn.Text = "SAVED!"
+        task.wait(1)
+        SaveBtn.Text = "SAVE SETTINGS"
+    else
+        print("❌ Failed to save settings:", err)
+        SaveBtn.Text = "FAILED!"
+        task.wait(1)
+        SaveBtn.Text = "SAVE SETTINGS"
+    end
+end)
+
 local ResetBtn = Instance.new("TextButton", SettingsPanel)
 ResetBtn.Size = UDim2.new(1, -20, 0, 30)
 ResetBtn.Position = UDim2.new(0, 10, 1, -40)
@@ -1223,6 +1276,11 @@ ResetBtn.MouseButton1Click:Connect(function()
     end
     
     print("All buttons reset to original positions!")
+    
+    -- Visual feedback
+    ResetBtn.Text = "RESET!"
+    task.wait(1)
+    ResetBtn.Text = "RESET BUTTONS"
 end)
 
 -- ========== SIDE MENU BUTTONS ==========
