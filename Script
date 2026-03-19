@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService") -- Added for jump detection
+local HttpService = game:GetService("HttpService") -- Added for JSON encoding
 
 local player = Players.LocalPlayer
 
@@ -61,6 +62,22 @@ local infiniteJumpActive = false
 local jumpConn = nil
 local jumpCount = 0
 local MAX_JUMPS = 999999  -- Effectively infinite
+
+-- ========== SAVE SYSTEM VARIABLES ==========
+local SAVE_KEY = "JayysDuels_SaveData"
+local saveData = {
+    settings = {
+        spinActive = false,
+        antiRagdollActive = false,
+        unwalkActive = false,
+        stealSpeedActive = false,
+        stealActive = false,
+        floating = false,
+        batAimbotActive = false,
+        infiniteJumpActive = false
+    },
+    positions = {}
+}
 
 local function setupSpinBot()
     local char = player.Character
@@ -692,6 +709,16 @@ local function MakeDraggable(frame)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
             frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            
+            -- ========== NEW: Save position when dragged ==========
+            if frame.Name and frame.Name ~= "" then
+                saveData.positions[frame.Name] = {
+                    X = frame.Position.X.Scale,
+                    XOffset = frame.Position.X.Offset,
+                    Y = frame.Position.Y.Scale,
+                    YOffset = frame.Position.Y.Offset
+                }
+            end
         end
     end)
     frame.InputEnded:Connect(function(input)
@@ -734,6 +761,7 @@ end
 -- ========== MAIN TITLE ==========
 -- ========== CHANGED: Title text updated ==========
 local Title = Instance.new("Frame", Lib)
+Title.Name = "Title"
 Title.Size = UDim2.new(0, 160, 0, 28)
 Title.Position = UDim2.new(0.5, -80, 0.05, 0)
 ApplyStyle(Title)
@@ -910,7 +938,8 @@ end)
 
 -- ========== SETTINGS MENU PANEL ==========
 local SettingsPanel = Instance.new("Frame", Lib)
-SettingsPanel.Size = UDim2.new(0, 240, 0, 400)  -- ========== CHANGED: Increased height for new button ==========
+SettingsPanel.Name = "SettingsPanel"
+SettingsPanel.Size = UDim2.new(0, 240, 0, 400)
 SettingsPanel.Position = UDim2.new(0.5, -120, 0.5, -200)
 SettingsPanel.Visible = false
 ApplyStyle(SettingsPanel)
@@ -925,16 +954,15 @@ STitle.Font = Enum.Font.GothamBold
 STitle.TextSize = 14
 
 local SContainer = Instance.new("ScrollingFrame", SettingsPanel)
-SContainer.Size = UDim2.new(1, -20, 1, -160)  -- ========== CHANGED: Adjusted height ==========
+SContainer.Size = UDim2.new(1, -20, 1, -160)
 SContainer.Position = UDim2.new(0, 10, 0, 40)
 SContainer.BackgroundTransparency = 1
 SContainer.ScrollBarThickness = 2
-SContainer.CanvasSize = UDim2.new(0, 0, 1.4, 0)  -- ========== CHANGED: Increased canvas size ==========
+SContainer.CanvasSize = UDim2.new(0, 0, 1.4, 0)
 
 local SLayout = Instance.new("UIListLayout", SContainer)
 SLayout.Padding = UDim.new(0, 8)
 
--- ========== ADDED: Infinite Jump to settings items ==========
 local settingsItems = {"Anti Fling", "Spin Bot", "Anti Ragdoll", "Auto Steal", "Steal Speed", "Unwalk", "Infinite Jump"}
 local settingsToggles = {}
 
@@ -973,15 +1001,18 @@ for _, name in pairs(settingsItems) do
             if not isActive then
                 spinActive = true
                 startSpinBot()
-                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
                 item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+                saveData.settings.spinActive = true
                 print("Spin Bot ON")
             else
+                spinActive = false
                 stopSpinBot()
-                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
                 item.BackgroundTransparency = 0
                 dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                saveData.settings.spinActive = false
                 print("Spin Bot OFF")
             end
         end)
@@ -994,16 +1025,18 @@ for _, name in pairs(settingsItems) do
             if not isActive then
                 antiRagdollActive = true
                 startAntiRagdoll()
-                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
                 item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+                saveData.settings.antiRagdollActive = true
                 print("Anti Ragdoll ON")
             else
                 antiRagdollActive = false
                 stopAntiRagdoll()
-                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
                 item.BackgroundTransparency = 0
                 dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                saveData.settings.antiRagdollActive = false
                 print("Anti Ragdoll OFF")
             end
         end)
@@ -1016,16 +1049,18 @@ for _, name in pairs(settingsItems) do
             if not isActive then
                 unwalkActive = true
                 startUnwalk()
-                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
                 item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+                saveData.settings.unwalkActive = true
                 print("Unwalk ON")
             else
                 unwalkActive = false
                 stopUnwalk()
-                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
                 item.BackgroundTransparency = 0
                 dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                saveData.settings.unwalkActive = false
                 print("Unwalk OFF")
             end
         end)
@@ -1038,16 +1073,18 @@ for _, name in pairs(settingsItems) do
             if not isActive then
                 stealSpeedActive = true
                 startStealSpeed()
-                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
                 item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+                saveData.settings.stealSpeedActive = true
                 print("Steal Speed ON (" .. STEAL_SPEED_VALUE .. ")")
             else
                 stealSpeedActive = false
                 stopStealSpeed()
-                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
                 item.BackgroundTransparency = 0
                 dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                saveData.settings.stealSpeedActive = false
                 print("Steal Speed OFF")
             end
         end)
@@ -1059,17 +1096,19 @@ for _, name in pairs(settingsItems) do
             local isActive = dot.BackgroundColor3 == Color3.fromRGB(100, 255, 100)
             if not isActive then
                 stealActive = true
-                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
                 item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
                 initSteal()
+                saveData.settings.stealActive = true
                 print("Auto Steal ON")
             else
                 stealActive = false
                 stopStealLoop()
-                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
                 item.BackgroundTransparency = 0
                 dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                saveData.settings.stealActive = false
                 print("Auto Steal OFF")
             end
         end)
@@ -1081,14 +1120,12 @@ for _, name in pairs(settingsItems) do
             local isActive = dot.BackgroundColor3 == Color3.fromRGB(100, 255, 100)
             
             if not isActive then
-                -- Turn ON
-                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
                 item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
                 print("Anti Fling ON (visual only)")
             else
-                -- Turn OFF
-                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
                 item.BackgroundTransparency = 0
                 dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
                 print("Anti Fling OFF")
@@ -1096,33 +1133,36 @@ for _, name in pairs(settingsItems) do
         end)
     end
 
-    -- ========== ADDED: Infinite Jump toggle ==========
+    -- Infinite Jump toggle
     if name == "Infinite Jump" then
         item.MouseButton1Click:Connect(function()
             local isActive = dot.BackgroundColor3 == Color3.fromRGB(100, 255, 100)
             if not isActive then
                 infiniteJumpActive = true
                 startInfiniteJump()
-                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+                item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
                 item.BackgroundTransparency = 0.2
                 dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+                saveData.settings.infiniteJumpActive = true
                 print("Infinite Jump ON")
             else
                 infiniteJumpActive = false
                 stopInfiniteJump()
-                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+                item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
                 item.BackgroundTransparency = 0
                 dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                saveData.settings.infiniteJumpActive = false
                 print("Infinite Jump OFF")
             end
         end)
     end
 end
 
--- ========== CHANGED: Save button with working functionality ==========
+-- ========== FIXED: Save button with full functionality ==========
 local SaveBtn = Instance.new("TextButton", SettingsPanel)
+SaveBtn.Name = "SaveBtn"
 SaveBtn.Size = UDim2.new(1, -20, 0, 30)
-SaveBtn.Position = UDim2.new(0, 10, 1, -115)  -- ========== CHANGED: Adjusted position ==========
+SaveBtn.Position = UDim2.new(0, 10, 1, -115)
 SaveBtn.Text = "SAVE SETTINGS"
 SaveBtn.TextColor3 = Color3.new(1, 1, 1)
 SaveBtn.Font = Enum.Font.GothamBold
@@ -1135,10 +1175,10 @@ if SaveStroke then
     SaveStroke.Color = Color3.fromRGB(0, 200, 255)  -- Cyan color
 end
 
--- Save button functionality - using HttpService to encode settings
+-- Save button functionality - saves both settings and positions
 SaveBtn.MouseButton1Click:Connect(function()
-    -- Create a table to store current states (added infiniteJumpActive)
-    local settingsToSave = {
+    -- Update saveData with current settings
+    saveData.settings = {
         spinActive = spinActive,
         antiRagdollActive = antiRagdollActive,
         unwalkActive = unwalkActive,
@@ -1146,34 +1186,211 @@ SaveBtn.MouseButton1Click:Connect(function()
         stealActive = stealActive,
         floating = floating,
         batAimbotActive = batAimbotActive,
-        infiniteJumpActive = infiniteJumpActive  -- ========== ADDED: Save infinite jump state ==========
+        infiniteJumpActive = infiniteJumpActive
     }
     
-    -- Use HttpService to encode the settings
+    -- Update positions for all draggable elements
+    saveData.positions["Title"] = {
+        X = Title.Position.X.Scale,
+        XOffset = Title.Position.X.Offset,
+        Y = Title.Position.Y.Scale,
+        YOffset = Title.Position.Y.Offset
+    }
+    
+    saveData.positions["SettingsPanel"] = {
+        X = SettingsPanel.Position.X.Scale,
+        XOffset = SettingsPanel.Position.X.Offset,
+        Y = SettingsPanel.Position.Y.Scale,
+        YOffset = SettingsPanel.Position.Y.Offset
+    }
+    
+    for name, button in pairs(buttons) do
+        if button and button.Name then
+            saveData.positions[button.Name] = {
+                X = button.Position.X.Scale,
+                XOffset = button.Position.X.Offset,
+                Y = button.Position.Y.Scale,
+                YOffset = button.Position.Y.Offset
+            }
+        end
+    end
+    
+    for name, button in pairs(tauntButtons) do
+        if button and button.Name then
+            saveData.positions[button.Name] = {
+                X = button.Position.X.Scale,
+                XOffset = button.Position.X.Offset,
+                Y = button.Position.Y.Scale,
+                YOffset = button.Position.Y.Offset
+            }
+        end
+    end
+    
+    -- Encode and save to a file
     local success, jsonData = pcall(function()
-        return game:GetService("HttpService"):JSONEncode(settingsToSave)
+        return HttpService:JSONEncode(saveData)
     end)
     
     if success then
-        -- Store in a global variable that persists in the script
-        _G.JayysDuelsSavedSettings = settingsToSave
-        print("✅ Settings saved to memory!")
+        local writeSuccess, writeErr = pcall(function()
+            writefile(SAVE_KEY .. ".json", jsonData)
+        end)
         
-        -- Visual feedback
-        SaveBtn.Text = "SAVED!"
-        task.wait(1)
-        SaveBtn.Text = "SAVE SETTINGS"
+        if writeSuccess then
+            print("✅ Settings and positions saved successfully!")
+            SaveBtn.Text = "SAVED!"
+            task.wait(1)
+            SaveBtn.Text = "SAVE SETTINGS"
+        else
+            print("❌ Failed to write file:", writeErr)
+            SaveBtn.Text = "FAILED!"
+            task.wait(1)
+            SaveBtn.Text = "SAVE SETTINGS"
+        end
     else
-        print("❌ Failed to save settings")
+        print("❌ Failed to encode settings")
         SaveBtn.Text = "FAILED!"
         task.wait(1)
         SaveBtn.Text = "SAVE SETTINGS"
     end
 end)
 
+-- ========== NEW: Load button ==========
+local LoadBtn = Instance.new("TextButton", SettingsPanel)
+LoadBtn.Name = "LoadBtn"
+LoadBtn.Size = UDim2.new(1, -20, 0, 30)
+LoadBtn.Position = UDim2.new(0, 10, 1, -155)
+LoadBtn.Text = "LOAD SETTINGS"
+LoadBtn.TextColor3 = Color3.new(1, 1, 1)
+LoadBtn.Font = Enum.Font.GothamBold
+LoadBtn.TextSize = 11
+ApplyStyle(LoadBtn)
+
+-- Make Load button have a different color
+local LoadStroke = LoadBtn:FindFirstChildOfClass("UIStroke")
+if LoadStroke then
+    LoadStroke.Color = Color3.fromRGB(100, 255, 100)  -- Green color
+end
+
+-- Load button functionality
+LoadBtn.MouseButton1Click:Connect(function()
+    local readSuccess, fileData = pcall(function()
+        return readfile(SAVE_KEY .. ".json")
+    end)
+    
+    if readSuccess and fileData then
+        local decodeSuccess, loadedData = pcall(function()
+            return HttpService:JSONDecode(fileData)
+        end)
+        
+        if decodeSuccess and loadedData then
+            -- Load settings
+            if loadedData.settings then
+                -- Spin Bot
+                if loadedData.settings.spinActive then
+                    spinActive = true
+                    startSpinBot()
+                end
+                
+                -- Anti Ragdoll
+                if loadedData.settings.antiRagdollActive then
+                    antiRagdollActive = true
+                    startAntiRagdoll()
+                end
+                
+                -- Unwalk
+                if loadedData.settings.unwalkActive then
+                    unwalkActive = true
+                    startUnwalk()
+                end
+                
+                -- Steal Speed
+                if loadedData.settings.stealSpeedActive then
+                    stealSpeedActive = true
+                    startStealSpeed()
+                end
+                
+                -- Auto Steal
+                if loadedData.settings.stealActive then
+                    stealActive = true
+                    initSteal()
+                end
+                
+                -- Float
+                if loadedData.settings.floating then
+                    floating = true
+                end
+                
+                -- Bat Aimbot
+                if loadedData.settings.batAimbotActive then
+                    batAimbotActive = true
+                    startBatAimbot()
+                end
+                
+                -- Infinite Jump
+                if loadedData.settings.infiniteJumpActive then
+                    infiniteJumpActive = true
+                    startInfiniteJump()
+                end
+            end
+            
+            -- Load positions
+            if loadedData.positions then
+                for name, pos in pairs(loadedData.positions) do
+                    local element = Lib:FindFirstChild(name)
+                    if element then
+                        element.Position = UDim2.new(pos.X, pos.XOffset, pos.Y, pos.YOffset)
+                    end
+                end
+            end
+            
+            -- Update button states visually
+            for name, item in pairs(settingsToggles) do
+                local dot = item:FindFirstChild("StatusDot")
+                if dot then
+                    if (name == "Spin Bot" and spinActive) or
+                       (name == "Anti Ragdoll" and antiRagdollActive) or
+                       (name == "Unwalk" and unwalkActive) or
+                       (name == "Steal Speed" and stealSpeedActive) or
+                       (name == "Auto Steal" and stealActive) or
+                       (name == "Infinite Jump" and infiniteJumpActive) then
+                        item.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+                        item.BackgroundTransparency = 0.2
+                        dot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+                    else
+                        item.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
+                        item.BackgroundTransparency = 0
+                        dot.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                    end
+                end
+            end
+            
+            -- Update main button states
+            updateButtonState(buttons["float"], floating, "Float [ON]", "Float")
+            updateButtonState(buttons["Bat Aimbot"], batAimbotActive, "Bat Aimbot [ON]", "Bat Aimbot")
+            
+            print("✅ Settings and positions loaded successfully!")
+            LoadBtn.Text = "LOADED!"
+            task.wait(1)
+            LoadBtn.Text = "LOAD SETTINGS"
+        else
+            print("❌ Failed to decode saved data")
+            LoadBtn.Text = "FAILED!"
+            task.wait(1)
+            LoadBtn.Text = "LOAD SETTINGS"
+        end
+    else
+        print("❌ No saved settings found")
+        LoadBtn.Text = "NO SAVE!"
+        task.wait(1)
+        LoadBtn.Text = "LOAD SETTINGS"
+    end
+end)
+
 local ResetBtn = Instance.new("TextButton", SettingsPanel)
+ResetBtn.Name = "ResetBtn"
 ResetBtn.Size = UDim2.new(1, -20, 0, 30)
-ResetBtn.Position = UDim2.new(0, 10, 1, -80)  -- ========== CHANGED: Adjusted position ==========
+ResetBtn.Position = UDim2.new(0, 10, 1, -40)
 ResetBtn.Text = "RESET BUTTONS"
 ResetBtn.TextColor3 = Color3.new(1, 1, 1)
 ResetBtn.Font = Enum.Font.GothamBold
@@ -1210,6 +1427,10 @@ ResetBtn.MouseButton1Click:Connect(function()
     if Title then
         Title.Position = UDim2.new(0.5, -80, 0.05, 0)
     end
+    -- Reset Settings Panel
+    if SettingsPanel then
+        SettingsPanel.Position = UDim2.new(0.5, -120, 0.5, -200)
+    end
     
     print("All buttons reset to original positions!")
     
@@ -1231,6 +1452,7 @@ local tauntButtons = {}
 
 for _, data in pairs(sideItems) do
     local s = Instance.new("TextButton", Lib)
+    s.Name = data.name
     s.Size = UDim2.new(0, 80, 0, 30)
     s.Position = data.pos
     s.Text = data.name
@@ -1249,10 +1471,10 @@ tauntButtons["MENU"].MouseButton1Click:Connect(function()
     
     -- Visual feedback
     if SettingsPanel.Visible then
-        tauntButtons["MENU"].BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+        tauntButtons["MENU"].BackgroundColor3 = Color3.fromRGB(80, 40, 160)
         tauntButtons["MENU"].BackgroundTransparency = 0.2
     else
-        tauntButtons["MENU"].BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+        tauntButtons["MENU"].BackgroundColor3 = Color3.fromRGB(5, 5, 8)
         tauntButtons["MENU"].BackgroundTransparency = 0
     end
 end)
@@ -1263,7 +1485,7 @@ tauntButtons["TAUNT"].MouseButton1Click:Connect(function()
     
     if tauntActive then
         -- Make button darker purple when active
-        tauntButtons["TAUNT"].BackgroundColor3 = Color3.fromRGB(80, 40, 160)  -- Darker purple
+        tauntButtons["TAUNT"].BackgroundColor3 = Color3.fromRGB(80, 40, 160)
         tauntButtons["TAUNT"].BackgroundTransparency = 0.2
         
         -- Start spamming loop
@@ -1299,7 +1521,7 @@ tauntButtons["TAUNT"].MouseButton1Click:Connect(function()
         print("Taunt spam ENABLED")
     else
         -- Reset button to original dark style
-        tauntButtons["TAUNT"].BackgroundColor3 = Color3.fromRGB(5, 5, 8)  -- Almost black
+        tauntButtons["TAUNT"].BackgroundColor3 = Color3.fromRGB(5, 5, 8)
         tauntButtons["TAUNT"].BackgroundTransparency = 0
         
         if tauntLoop then
@@ -1336,10 +1558,9 @@ player.CharacterAdded:Connect(function()
     if unwalkActive then startUnwalk() end
     if stealSpeedActive then startStealSpeed() end
     if spinActive then startSpinBot() end
-    -- ========== ADDED: Restart infinite jump if active ==========
     if infiniteJumpActive then 
-        stopInfiniteJump()  -- Stop any existing connection first
-        startInfiniteJump() 
+        stopInfiniteJump()
+        startInfiniteJump()
     end
 end)
 
