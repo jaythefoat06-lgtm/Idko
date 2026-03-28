@@ -1,26 +1,34 @@
 --[[
     BRAINROT FISHING SIMULATOR
-    Auto Fish + Auto Perfect System
-    Press 'M' to open menu
+    Auto Fish + Auto Perfect + Auto Reel
+    Mobile & PC Compatible
+    Touch buttons in middle of screen
 ]]
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
+
+-- Check if mobile
+local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+local screenSize = workspace.CurrentCamera.ViewportSize
 
 -- Services for UI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BrainrotFishingGUI"
 screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false
 
 -- Settings
 local settings = {
     autoFish = false,
     autoPerfect = false,
+    autoReel = false,
     castDelay = 2,
     perfectWindow = 0.3
 }
@@ -34,86 +42,143 @@ local currentCatchBar = nil
 local perfectZone = nil
 local isFishing = false
 local isCatching = false
+local isReeling = false
 
--- Create Menu UI
-local function createMenu()
-    local menuFrame = Instance.new("Frame")
-    menuFrame.Name = "MenuFrame"
-    menuFrame.Size = UDim2.new(0, 300, 0, 250)
-    menuFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
-    menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    menuFrame.BackgroundTransparency = 1
-    menuFrame.BorderSizePixel = 0
-    menuFrame.Visible = false
-    menuFrame.Parent = screenGui
+-- Mobile button variables
+local mobileButtons = {}
+local dragOffset = nil
+local dragActive = false
+local draggedButton = nil
+
+-- Create centered floating buttons
+local function createCenteredButtons()
+    local buttonContainer = Instance.new("Frame")
+    buttonContainer.Name = "ButtonContainer"
+    buttonContainer.Size = UDim2.new(0, 280, 0, 380)
+    buttonContainer.Position = UDim2.new(0.5, -140, 0.5, -190)
+    buttonContainer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    buttonContainer.BackgroundTransparency = 0.6
+    buttonContainer.BorderSizePixel = 0
+    buttonContainer.Visible = true
+    buttonContainer.Parent = screenGui
     
-    -- Corner rounding
+    -- Add blur effect
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 0
+    blur.Parent = buttonContainer
+    
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = menuFrame
+    corner.CornerRadius = UDim.new(0, 20)
+    corner.Parent = buttonContainer
     
-    -- Drop shadow
-    local shadow = Instance.new("UIShadow")
-    shadow.Parent = menuFrame
-    
-    -- Title
+    -- Title text
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 40)
     title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    title.BackgroundTransparency = 0.2
-    title.Text = "🐟 BRAINROT FISHING 🐟"
+    title.BackgroundTransparency = 1
+    title.Text = "🐟 BRAINROT FISHING 🎣"
     title.TextColor3 = Color3.fromRGB(255, 200, 100)
     title.TextScaled = true
     title.Font = Enum.Font.GothamBold
-    title.Parent = menuFrame
+    title.Parent = buttonContainer
     
-    -- Auto Fish Toggle
-    local autoFishBtn = Instance.new("TextButton")
-    autoFishBtn.Size = UDim2.new(0.9, 0, 0, 45)
-    autoFishBtn.Position = UDim2.new(0.05, 0, 0.2, 0)
-    autoFishBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    autoFishBtn.Text = "🔁 AUTO FISH: OFF"
-    autoFishBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    autoFishBtn.TextScaled = true
-    autoFishBtn.Font = Enum.Font.GothamBold
-    autoFishBtn.Parent = menuFrame
+    -- Button configurations
+    local buttons = {
+        {name = "AutoFish", text = "🔁 AUTO FISH", color = Color3.fromRGB(50, 150, 200), setting = "autoFish"},
+        {name = "AutoPerfect", text = "✨ AUTO PERFECT", color = Color3.fromRGB(200, 100, 200), setting = "autoPerfect"},
+        {name = "AutoReel", text = "🎣 AUTO REEL", color = Color3.fromRGB(100, 200, 100), setting = "autoReel"}
+    }
     
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 8)
-    btnCorner.Parent = autoFishBtn
-    
-    -- Auto Perfect Toggle
-    local autoPerfectBtn = Instance.new("TextButton")
-    autoPerfectBtn.Size = UDim2.new(0.9, 0, 0, 45)
-    autoPerfectBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
-    autoPerfectBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    autoPerfectBtn.Text = "✨ AUTO PERFECT: OFF"
-    autoPerfectBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    autoPerfectBtn.TextScaled = true
-    autoPerfectBtn.Font = Enum.Font.GothamBold
-    autoPerfectBtn.Parent = menuFrame
-    
-    local btnCorner2 = Instance.new("UICorner")
-    btnCorner2.CornerRadius = UDim.new(0, 8)
-    btnCorner2.Parent = autoPerfectBtn
+    -- Create buttons
+    for i, btnData in ipairs(buttons) do
+        local button = Instance.new("TextButton")
+        button.Name = btnData.name
+        button.Size = UDim2.new(0.85, 0, 0, 55)
+        button.Position = UDim2.new(0.075, 0, 0.15 + (i-1) * 0.19, 0)
+        button.BackgroundColor3 = btnData.color
+        button.BackgroundTransparency = 0.3
+        button.Text = btnData.text
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextScaled = true
+        button.Font = Enum.Font.GothamBold
+        button.Parent = buttonContainer
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 12)
+        btnCorner.Parent = button
+        
+        -- Shadow effect
+        local shadow = Instance.new("UIStroke")
+        shadow.Thickness = 2
+        shadow.Color = Color3.fromRGB(255, 255, 255)
+        shadow.Transparency = 0.5
+        shadow.Parent = button
+        
+        -- Store button data
+        button.Setting = btnData.setting
+        
+        -- Hover effect
+        button.MouseEnter:Connect(function()
+            if not isMobile then
+                TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.1}):Play()
+                TweenService:Create(button, TweenInfo.new(0.2), {Size = UDim2.new(0.87, 0, 0, 58)}):Play()
+            end
+        end)
+        
+        button.MouseLeave:Connect(function()
+            if not isMobile then
+                TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
+                TweenService:Create(button, TweenInfo.new(0.2), {Size = UDim2.new(0.85, 0, 0, 55)}):Play()
+            end
+        end)
+        
+        -- Click effect
+        button.MouseButton1Click:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundTransparency = 0.5}):Play()
+            task.wait(0.1)
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundTransparency = 0.3}):Play()
+            
+            local setting = button.Setting
+            settings[setting] = not settings[setting]
+            updateButtonUI(button, settings[setting])
+            
+            if setting == "autoFish" and settings.autoFish then
+                startAutoFishing()
+            end
+        end)
+        
+        -- Mobile touch handling
+        if isMobile then
+            button.TouchTap:Connect(function()
+                local setting = button.Setting
+                settings[setting] = not settings[setting]
+                updateButtonUI(button, settings[setting])
+                
+                if setting == "autoFish" and settings.autoFish then
+                    startAutoFishing()
+                end
+            end)
+        end
+        
+        mobileButtons[btnData.setting] = button
+    end
     
     -- Cast Delay Slider
     local delayLabel = Instance.new("TextLabel")
-    delayLabel.Size = UDim2.new(0.9, 0, 0, 25)
-    delayLabel.Position = UDim2.new(0.05, 0, 0.55, 0)
+    delayLabel.Size = UDim2.new(0.85, 0, 0, 25)
+    delayLabel.Position = UDim2.new(0.075, 0, 0.72, 0)
     delayLabel.BackgroundTransparency = 1
-    delayLabel.Text = "CAST DELAY: 2.0s"
-    delayLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    delayLabel.Text = "⏱️ CAST DELAY: 2.0s"
+    delayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     delayLabel.TextScaled = true
     delayLabel.Font = Enum.Font.Gotham
-    delayLabel.Parent = menuFrame
+    delayLabel.Parent = buttonContainer
     
     local sliderBg = Instance.new("Frame")
-    sliderBg.Size = UDim2.new(0.9, 0, 0, 8)
-    sliderBg.Position = UDim2.new(0.05, 0, 0.62, 0)
+    sliderBg.Size = UDim2.new(0.85, 0, 0, 8)
+    sliderBg.Position = UDim2.new(0.075, 0, 0.8, 0)
     sliderBg.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    sliderBg.Parent = menuFrame
+    sliderBg.Parent = buttonContainer
     
     local sliderCorner = Instance.new("UICorner")
     sliderCorner.CornerRadius = UDim.new(1, 0)
@@ -129,133 +194,159 @@ local function createMenu()
     fillCorner.Parent = sliderFill
     
     local sliderButton = Instance.new("TextButton")
-    sliderButton.Size = UDim2.new(0, 20, 0, 20)
-    sliderButton.Position = UDim2.new(0.5, -10, 0.5, -10)
-    sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    sliderButton.Text = ""
+    sliderButton.Size = UDim2.new(0, 25, 0, 25)
+    sliderButton.Position = UDim2.new(0.5, -12.5, 0.5, -12.5)
+    sliderButton.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+    sliderButton.Text = "⏺"
+    sliderButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    sliderButton.TextScaled = true
     sliderButton.Parent = sliderBg
     
     local btnCorner3 = Instance.new("UICorner")
     btnCorner3.CornerRadius = UDim.new(1, 0)
     btnCorner3.Parent = sliderButton
     
-    -- Close Button
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    closeBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-    closeBtn.Text = "CLOSE"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.TextScaled = true
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.Parent = menuFrame
-    
-    local btnCorner4 = Instance.new("UICorner")
-    btnCorner4.CornerRadius = UDim.new(0, 8)
-    btnCorner4.Parent = closeBtn
-    
-    -- Update button texts
-    local function updateButtons()
-        autoFishBtn.Text = settings.autoFish and "🔁 AUTO FISH: ON 🔥" or "🔁 AUTO FISH: OFF"
-        autoFishBtn.BackgroundColor3 = settings.autoFish and Color3.fromRGB(80, 120, 80) or Color3.fromRGB(40, 40, 50)
-        autoPerfectBtn.Text = settings.autoPerfect and "✨ AUTO PERFECT: ON 💯" or "✨ AUTO PERFECT: OFF"
-        autoPerfectBtn.BackgroundColor3 = settings.autoPerfect and Color3.fromRGB(80, 120, 80) or Color3.fromRGB(40, 40, 50)
+    -- Drag functionality for slider
+    local dragging = false
+    local function updateDelay(value)
+        settings.castDelay = math.clamp(value, 0.5, 5)
+        delayLabel.Text = string.format("⏱️ CAST DELAY: %.1fs", settings.castDelay)
+        local percent = (settings.castDelay - 0.5) / 4.5
+        sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+        sliderButton.Position = UDim2.new(percent, -12.5, 0.5, -12.5)
     end
     
-    -- Slider dragging
-    local dragging = false
+    updateDelay(settings.castDelay)
+    
     sliderButton.MouseButton1Down:Connect(function()
         dragging = true
     end)
     
     UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
     
-    local function updateDelay(value)
-        settings.castDelay = math.clamp(value, 0.5, 5)
-        delayLabel.Text = string.format("CAST DELAY: %.1fs", settings.castDelay)
-        local percent = (settings.castDelay - 0.5) / 4.5
-        sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-        sliderButton.Position = UDim2.new(percent, -10, 0.5, -10)
-    end
-    
-    updateDelay(settings.castDelay)
-    
-    RunService.RenderStepped:Connect(function()
+    -- Handle slider drag
+    local function onDrag(input)
         if dragging then
-            local mousePos = mouse.X
+            local mousePos = input.Position.X
             local sliderPos = sliderBg.AbsolutePosition.X
             local sliderWidth = sliderBg.AbsoluteSize.X
             local percent = math.clamp((mousePos - sliderPos) / sliderWidth, 0, 1)
             settings.castDelay = 0.5 + (percent * 4.5)
             updateDelay(settings.castDelay)
         end
-    end)
-    
-    -- Button connections
-    autoFishBtn.MouseButton1Click:Connect(function()
-        settings.autoFish = not settings.autoFish
-        updateButtons()
-        if settings.autoFish then
-            startAutoFishing()
-        end
-    end)
-    
-    autoPerfectBtn.MouseButton1Click:Connect(function()
-        settings.autoPerfect = not settings.autoPerfect
-        updateButtons()
-    end)
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        toggleMenu()
-    end)
-    
-    updateButtons()
-    
-    -- Animate menu
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local openTween = TweenService:Create(menuFrame, tweenInfo, {BackgroundTransparency = 0, Position = UDim2.new(0.5, -150, 0.5, -125)})
-    local closeTween = TweenService:Create(menuFrame, tweenInfo, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -150, 0.5, -100)})
-    
-    local function setMenuVisible(visible)
-        menuVisible = visible
-        menuFrame.Visible = true
-        if visible then
-            openTween:Play()
-        else
-            closeTween:Play()
-            closeTween.Completed:Wait()
-            menuFrame.Visible = false
-        end
     end
     
-    return setMenuVisible
+    if isMobile then
+        UserInputService.TouchMoved:Connect(onDrag)
+    else
+        UserInputService.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                onDrag(input)
+            end
+        end)
+    end
+    
+    -- Add drag handle to move entire container
+    local dragHandle = Instance.new("TextButton")
+    dragHandle.Size = UDim2.new(1, 0, 0, 40)
+    dragHandle.Position = UDim2.new(0, 0, 0, 0)
+    dragHandle.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+    dragHandle.BackgroundTransparency = 0.5
+    dragHandle.Text = "⋮⋮ DRAG TO MOVE ⋮⋮"
+    dragHandle.TextColor3 = Color3.fromRGB(0, 0, 0)
+    dragHandle.TextScaled = true
+    dragHandle.Font = Enum.Font.GothamBold
+    dragHandle.Parent = buttonContainer
+    
+    local handleCorner = Instance.new("UICorner")
+    handleCorner.CornerRadius = UDim.new(0, 12)
+    handleCorner.Parent = dragHandle
+    
+    local isDragging = false
+    local dragStartPos = nil
+    local containerStartPos = nil
+    
+    dragHandle.MouseButton1Down:Connect(function()
+        isDragging = true
+        dragStartPos = UserInputService:GetMouseLocation()
+        containerStartPos = buttonContainer.Position
+    end)
+    
+    if isMobile then
+        dragHandle.TouchTap:Connect(function()
+            -- Don't drag on tap
+        end)
+        
+        dragHandle.TouchLongPress:Connect(function()
+            isDragging = true
+            dragStartPos = UserInputService:GetMouseLocation()
+            containerStartPos = buttonContainer.Position
+        end)
+    end
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local currentPos = UserInputService:GetMouseLocation()
+            local delta = currentPos - dragStartPos
+            local newX = containerStartPos.X.Offset + delta.X
+            local newY = containerStartPos.Y.Offset + delta.Y
+            
+            -- Clamp to screen edges
+            local containerSize = buttonContainer.AbsoluteSize
+            newX = math.clamp(newX, 10, screenSize.X - containerSize.X - 10)
+            newY = math.clamp(newY, 10, screenSize.Y - containerSize.Y - 10)
+            
+            buttonContainer.Position = UDim2.new(0, newX, 0, newY)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = false
+        end
+    end)
+    
+    return buttonContainer
+end
+
+-- Update button UI based on state
+local function updateButtonUI(button, isEnabled)
+    if isEnabled then
+        button.BackgroundTransparency = 0.1
+        button.Text = button.Text .. " ✓"
+        TweenService:Create(button, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(80, 200, 80)}):Play()
+    else
+        button.BackgroundTransparency = 0.3
+        button.Text = button.Text:gsub(" ✓", "")
+        TweenService:Create(button, TweenInfo.new(0.3), {BackgroundColor3 = button.OriginalColor or Color3.fromRGB(50, 150, 200)}):Play()
+    end
+end
+
+-- Store original colors
+for _, btn in pairs(mobileButtons) do
+    if btn then
+        btn.OriginalColor = btn.BackgroundColor3
+    end
 end
 
 -- Auto fishing logic
 local autoFishingTask = nil
 
 local function findCastButton()
-    -- Look for common fishing UI elements
-    local screenGui = player.PlayerGui:FindFirstChild("FishingGUI") or player.PlayerGui:FindFirstChild("Fishing")
-    if screenGui then
-        local castBtn = screenGui:FindFirstChild("CastButton") or screenGui:FindFirstChild("FishButton")
-        if castBtn and castBtn:IsA("TextButton") then
-            return castBtn
+    for _, gui in pairs(player.PlayerGui:GetDescendants()) do
+        if gui:IsA("TextButton") then
+            local text = gui.Text:lower()
+            if text:find("cast") or text:find("fish") or text:find("throw") then
+                if gui.Visible and gui.Active then
+                    return gui
+                end
+            end
         end
     end
-    
-    -- Alternative: find by text
-    for _, gui in pairs(player.PlayerGui:GetChildren()) do
-        local btn = gui:FindFirstChild("CastButton") or gui:FindFirstChild("Fish")
-        if btn and btn:IsA("TextButton") and btn.Visible then
-            return btn
-        end
-    end
-    
     return nil
 end
 
@@ -264,6 +355,7 @@ local function castLine()
     if castBtn and castBtn.Visible then
         castBtn:Click()
         isFishing = true
+        createNotification("🎣 CASTING LINE...", Color3.fromRGB(100, 200, 255))
         return true
     end
     return false
@@ -271,7 +363,7 @@ end
 
 local function autoCastLoop()
     while settings.autoFish and task.wait(settings.castDelay) do
-        if not isFishing and not isCatching then
+        if not isFishing and not isCatching and not isReeling then
             castLine()
         end
     end
@@ -284,78 +376,82 @@ local function startAutoFishing()
     autoFishingTask = task.spawn(autoCastLoop)
 end
 
--- Auto perfect catching
-local function findCatchUI()
-    -- Look for the catching minigame UI
+-- Auto reel functionality
+local function findReelButton()
     for _, gui in pairs(player.PlayerGui:GetDescendants()) do
-        if gui.Name:lower():find("catch") or gui.Name:lower():find("reel") then
-            if gui:IsA("Frame") and gui.Visible then
-                return gui
+        if gui:IsA("TextButton") then
+            local text = gui.Text:lower()
+            if text:find("reel") or text:find("pull") or text:find("catch") then
+                if gui.Visible and gui.Active then
+                    return gui
+                end
             end
         end
     end
     return nil
 end
 
-local function findPerfectZone()
-    -- Find the perfect zone indicator
-    local catchUI = findCatchUI()
-    if catchUI then
-        for _, child in pairs(catchUI:GetDescendants()) do
-            if child.Name:lower():find("perfect") or child.Name:lower():find("zone") then
-                return child
-            end
+local function autoReel()
+    if settings.autoReel then
+        local reelBtn = findReelButton()
+        if reelBtn and reelBtn.Visible then
+            reelBtn:Click()
+            isReeling = true
+            createNotification("🎣 AUTO REELING!", Color3.fromRGB(100, 255, 100))
+            task.wait(0.5)
+            isReeling = false
         end
     end
-    return nil
 end
 
-local function findCatchButton()
-    -- Find the button to catch/reel
-    for _, gui in pairs(player.PlayerGui:GetDescendants()) do
-        if gui:IsA("TextButton") and (gui.Text:lower():find("catch") or gui.Text:lower():find("reel")) then
-            return gui
-        end
-    end
-    return nil
-end
-
--- Hook into catching events
+-- Setup catch detection
 local function setupCatchDetection()
-    -- Monitor for new UI elements appearing
-    local connection
-    connection = player.PlayerGui.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("Frame") and (descendant.Name:lower():find("catch") or descendant.Name:lower():find("reel")) then
-            isCatching = true
-            isFishing = false
-            
-            if settings.autoPerfect then
-                task.spawn(function()
-                    task.wait(0.05) -- Small delay for UI to fully load
-                    local catchBtn = findCatchButton()
-                    if catchBtn then
-                        catchBtn:Click()
-                    end
-                end)
+    player.PlayerGui.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("TextButton") then
+            local text = descendant.Text:lower()
+            if text:find("catch") or text:find("reel") then
+                isCatching = true
+                isFishing = false
+                
+                -- Auto perfect logic
+                if settings.autoPerfect then
+                    task.spawn(function()
+                        task.wait(0.1)
+                        if descendant and descendant.Parent then
+                            descendant:Click()
+                            createNotification("✨ PERFECT CATCH!", Color3.fromRGB(255, 200, 100))
+                        end
+                    end)
+                end
+                
+                -- Auto reel logic
+                if settings.autoReel then
+                    task.spawn(function()
+                        task.wait(0.05)
+                        autoReel()
+                    end)
+                end
             end
         end
     end)
     
-    -- Detect when catching is done
     player.PlayerGui.DescendantRemoving:Connect(function(descendant)
-        if descendant:IsA("Frame") and (descendant.Name:lower():find("catch") or descendant.Name:lower():find("reel")) then
-            isCatching = false
+        if descendant:IsA("TextButton") then
+            local text = descendant.Text:lower()
+            if text:find("catch") or text:find("reel") then
+                task.wait(0.2)
+                isCatching = false
+                isReeling = false
+            end
         end
     end)
-    
-    return connection
 end
 
--- UI Notification system
+-- Create notification
 local function createNotification(text, color)
     local notif = Instance.new("TextLabel")
-    notif.Size = UDim2.new(0, 250, 0, 40)
-    notif.Position = UDim2.new(0.5, -125, 0.9, 0)
+    notif.Size = UDim2.new(0, 300, 0, 50)
+    notif.Position = UDim2.new(0.5, -150, 0.85, 0)
     notif.BackgroundColor3 = color or Color3.fromRGB(50, 50, 50)
     notif.BackgroundTransparency = 0.2
     notif.Text = text
@@ -378,50 +474,64 @@ local function createNotification(text, color)
     end)
 end
 
--- Toggle menu
-local toggleMenu
-local function init()
-    toggleMenu = createMenu()
+-- Status indicator
+local function createStatusIndicator()
+    local status = Instance.new("TextLabel")
+    status.Name = "StatusIndicator"
+    status.Size = UDim2.new(0, 200, 0, 35)
+    status.Position = UDim2.new(0.01, 0, 0.01, 0)
+    status.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    status.BackgroundTransparency = 0.5
+    status.Text = "🐟 IDLE"
+    status.TextColor3 = Color3.fromRGB(255, 255, 255)
+    status.TextScaled = true
+    status.Font = Enum.Font.GothamBold
+    status.Parent = screenGui
     
-    -- Menu toggle key (M)
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        
-        if input.KeyCode == Enum.KeyCode.M then
-            toggleMenu(not menuVisible)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = status
+    
+    -- Update status
+    task.spawn(function()
+        while task.wait(0.5) do
+            if settings.autoFish and isFishing then
+                status.Text = "🎣 FISHING..."
+                status.BackgroundColor3 = Color3.fromRGB(100, 150, 200)
+            elseif settings.autoFish and isCatching then
+                status.Text = "✨ CATCHING..."
+                status.BackgroundColor3 = Color3.fromRGB(200, 100, 200)
+            elseif settings.autoFish and settings.autoReel and isReeling then
+                status.Text = "🔄 REELING..."
+                status.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+            elseif settings.autoFish then
+                status.Text = "🔁 AUTO FISH ACTIVE"
+                status.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+            else
+                status.Text = "🐟 BRAINROT MODE"
+                status.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            end
         end
     end)
-    
-    -- Setup catch detection
+end
+
+-- Initialize
+local function init()
+    createCenteredButtons()
     setupCatchDetection()
+    createStatusIndicator()
+    
+    createNotification("🐟 BRAINROT FISHING LOADED! 🎣", Color3.fromRGB(100, 200, 255))
     
     -- Start watching for fishing state
     task.spawn(function()
-        while task.wait(0.5) do
-            if settings.autoFish and not isFishing and not isCatching then
+        while task.wait(0.3) do
+            if settings.autoFish and not isFishing and not isCatching and not isReeling then
                 castLine()
             end
         end
     end)
-    
-    createNotification("🐟 BRAINROT FISHING LOADED | PRESS M", Color3.fromRGB(100, 150, 200))
 end
 
 -- Run the script
 init()
-
--- Hotkey indicator
-local hotkeyText = Instance.new("TextLabel")
-hotkeyText.Size = UDim2.new(0, 150, 0, 30)
-hotkeyText.Position = UDim2.new(0.01, 0, 0.95, 0)
-hotkeyText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-hotkeyText.BackgroundTransparency = 0.5
-hotkeyText.Text = "🔘 M - MENU"
-hotkeyText.TextColor3 = Color3.fromRGB(255, 255, 255)
-hotkeyText.TextScaled = true
-hotkeyText.Font = Enum.Font.Gotham
-hotkeyText.Parent = screenGui
-
-local hotkeyCorner = Instance.new("UICorner")
-hotkeyCorner.CornerRadius = UDim.new(0, 4)
-hotkeyCorner.Parent = hotkeyText
